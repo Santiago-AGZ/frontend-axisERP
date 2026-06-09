@@ -34,7 +34,6 @@ export function useRegisterStockExit() {
       qc.invalidateQueries({ queryKey: ['reports'] })
     },
   })
-  })
 }
 
 export function useInventoryMovements(params: { productId?: string; from?: string; to?: string; page?: number; size?: number } = {}) {

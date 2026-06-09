@@ -88,52 +88,12 @@ export function useDeactivateCategory() {
   })
 }
 
-export function useDeactivateProduct() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => catalogApi.deactivateProduct(id).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
-  })
-}
-
-export function useReactivateProduct() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => catalogApi.reactivateProduct(id).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
-  })
-}
-
 export function useCategories() {
   return useQuery({ queryKey: ['categories'], queryFn: () => catalogApi.listCategories().then(r => r.data), staleTime: 30000 })
 }
 
 export function useCategoryTree() {
   return useQuery({ queryKey: ['category-tree'], queryFn: () => catalogApi.getCategoryTree().then(r => r.data), staleTime: 30000 })
-}
-
-export function useCreateCategory() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (data: CreateCategoryRequest) => catalogApi.createCategory(data).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories', 'category-tree'] }),
-  })
-}
-
-export function useUpdateCategory(id: string) {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (data: UpdateCategoryRequest) => catalogApi.updateCategory(id, data).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories', 'category-tree'] }),
-  })
-}
-
-export function useDeactivateCategory() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => catalogApi.deactivateCategory(id).then(r => r.data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories', 'category-tree'] }),
-  })
 }
 
 export function useBarcodes(productId: string) {
