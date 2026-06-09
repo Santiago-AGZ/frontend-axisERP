@@ -310,7 +310,7 @@ export function UsuariosPage() {
               />
               <DialogFooter>
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {editing ? 'Actualizar' : 'Crear Usuario'}
+                  {editing ? 'Actualizar usuario' : 'Crear usuario'}
                 </Button>
               </DialogFooter>
             </form>

@@ -256,7 +256,7 @@ export function ProductosPage() {
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {editing ? 'Actualizar' : 'Crear'}
+                  {editing ? 'Actualizar producto' : 'Crear producto'}
                 </Button>
               </DialogFooter>
             </form>

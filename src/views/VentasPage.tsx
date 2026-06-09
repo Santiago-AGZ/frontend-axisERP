@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { AxiosError } from 'axios'
 import { Plus, Eye, Ban, Trash2, ShoppingCart, CheckCircle2, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
 import { salesService, type SaleResponse } from '@/services/sales'
@@ -13,6 +14,7 @@ import { DataTable, type Column } from '@/components/shared/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import type { ApiResponse } from '@/types/api'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
@@ -101,19 +103,28 @@ export function VentasPage() {
       setOpen(false)
       form.reset()
     },
-    onError: () => toast.error('Error al crear venta'),
+    onError: (err) => {
+      const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'No se pudo crear la venta'
+      toast.error(msg)
+    },
   })
 
   const confirmMutation = useMutation({
     mutationFn: (id: string) => salesService.confirmSale(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.sales.sales.all }); toast.success('Venta confirmada') },
-    onError: () => toast.error('Error al confirmar venta'),
+    onError: (err) => {
+      const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'Error al confirmar venta'
+      toast.error(msg)
+    },
   })
 
   const payMutation = useMutation({
     mutationFn: (id: string) => salesService.paySale(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.sales.sales.all }); toast.success('Pago registrado') },
-    onError: () => toast.error('Error al registrar pago'),
+    onError: (err) => {
+      const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'Error al registrar pago'
+      toast.error(msg)
+    },
   })
 
   const voidMutation = useMutation({
@@ -124,7 +135,10 @@ export function VentasPage() {
       setVoidOpen(false)
       setVoidingId(null)
     },
-    onError: () => toast.error('Error al anular venta'),
+    onError: (err) => {
+      const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'Error al anular venta'
+      toast.error(msg)
+    },
   })
 
   function addProduct(productId: string) {

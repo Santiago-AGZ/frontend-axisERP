@@ -16,7 +16,7 @@ import { useAuthStore } from '@/stores/auth'
 import { reportService, type SalesReport, type InventoryReport, type TopProductsReport } from '@/services/report'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
+  PieChart, Pie, Cell, LineChart, Line,
 } from 'recharts'
 import { NavLink } from 'react-router-dom'
 
@@ -119,22 +119,18 @@ function SalesFunnel({ data }: { data: SalesReport }) {
 }
 
 function InventoryDonut({ data }: { data: InventoryReport }) {
+  if (data.totalProducts === 0) return null
   const chartData = [
-    { name: 'Stock Normal', value: Math.max(0, data.totalProducts - data.lowStockCount - data.depletedCount) },
+    { name: 'Stock Normal', value: data.totalProducts - data.lowStockCount - data.depletedCount },
     { name: 'Stock Bajo', value: data.lowStockCount },
-    { name: 'Agotado', value: data.depletedCount },
+    { name: 'Agotados', value: data.depletedCount },
   ].filter(d => d.value > 0)
-  if (chartData.length === 0) return (
-    <Card>
-      <CardHeader><CardTitle className="text-sm font-medium">Distribución de Inventario</CardTitle></CardHeader>
-      <CardContent><p className="py-8 text-center text-sm text-muted-foreground">No hay datos de inventario</p></CardContent>
-    </Card>
-  )
+  if (chartData.length === 0) return null
   return (
     <Card>
       <CardHeader><CardTitle className="text-sm font-medium">Distribución de Inventario</CardTitle></CardHeader>
-      <CardContent className="flex items-center justify-center">
-        <div role="img" aria-label="Gráfico de donut de distribución del inventario">
+      <CardContent>
+        <div role="img" aria-label="Gráfico de pastel de distribución de inventario">
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
@@ -142,6 +138,36 @@ function InventoryDonut({ data }: { data: InventoryReport }) {
               </Pie>
               <Tooltip />
             </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function RevenueTrend({ data }: { data: SalesReport }) {
+  const dailyRevenue = data.recentSales.reduce<Record<string, number>>((acc, sale) => {
+    const day = sale.createdAt.split(' ')[0].replace(/(\d+)\/(\d+)\/(\d+)/, '$3-$2-$1')
+    acc[day] = (acc[day] || 0) + sale.total
+    return acc
+  }, {})
+  const chartData = Object.entries(dailyRevenue)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, revenue]) => ({ date, revenue: Math.round(revenue) }))
+  if (chartData.length < 2) return null
+  return (
+    <Card className="lg:col-span-2">
+      <CardHeader><CardTitle className="text-sm font-medium">Tendencia de Ingresos</CardTitle></CardHeader>
+      <CardContent>
+        <div role="img" aria-label="Gráfico de línea de tendencia de ingresos">
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+              <XAxis dataKey="date" className="text-xs" tickFormatter={(v) => v.split('-').slice(1).join('/')} />
+              <YAxis className="text-xs" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+              <Tooltip formatter={(val) => formatCurrency(Number(val))} labelFormatter={(l) => `Fecha: ${l}`} />
+              <Line type="monotone" dataKey="revenue" stroke="oklch(0.596 0.145 163.225)" strokeWidth={2} dot={{ fill: 'oklch(0.596 0.145 163.225)', r: 4 }} />
+            </LineChart>
           </ResponsiveContainer>
         </div>
       </CardContent>
@@ -388,6 +414,12 @@ export function DashboardPage() {
         {salesData && <SalesFunnel data={salesData} />}
         {invData && <InventoryDonut data={invData} />}
       </div>
+
+      {salesData && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <RevenueTrend data={salesData} />
+        </div>
+      )}
 
       {invData && <LowStockSection data={invData} />}
 

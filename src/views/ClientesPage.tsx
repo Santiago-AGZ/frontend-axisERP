@@ -243,7 +243,7 @@ export function ClientesPage() {
               )} />
               <DialogFooter>
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {editing ? 'Actualizar' : 'Crear'}
+                  {editing ? 'Actualizar cliente' : 'Crear cliente'}
                 </Button>
               </DialogFooter>
             </form>

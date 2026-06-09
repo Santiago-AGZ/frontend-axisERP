@@ -201,6 +201,21 @@
   top: 0;
 }
 
+:focus-visible {
+  outline: 2px solid oklch(0.596 0.145 163.225);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid oklch(0.596 0.145 163.225);
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

@@ -267,7 +267,7 @@ export function CategoriasPage() {
               />
               <DialogFooter>
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {editing ? 'Actualizar' : 'Crear Categoría'}
+                  {editing ? 'Actualizar categoría' : 'Crear categoría'}
                 </Button>
               </DialogFooter>
             </form>

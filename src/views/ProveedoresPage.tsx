@@ -225,7 +225,7 @@ export function ProveedoresPage() {
               )} />
               <DialogFooter>
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {editing ? 'Actualizar' : 'Crear'}
+                  {editing ? 'Actualizar proveedor' : 'Crear proveedor'}
                 </Button>
               </DialogFooter>
             </form>

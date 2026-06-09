@@ -3,15 +3,15 @@ import { authApi } from '@/api/auth'
 import type { CreateUserRequest, UpdateUserRequest } from '@/types/auth'
 
 export function useMe() {
-  return useQuery({ queryKey: ['me'], queryFn: () => authApi.getMe().then(r => r.data) })
+  return useQuery({ queryKey: ['me'], queryFn: () => authApi.getMe().then(r => r.data), staleTime: 30000 })
 }
 
 export function useUsers(params: { page?: number; size?: number } = {}) {
-  return useQuery({ queryKey: ['users', params], queryFn: () => authApi.listUsers(params).then(r => r.data) })
+  return useQuery({ queryKey: ['users', params], queryFn: () => authApi.listUsers(params).then(r => r.data), staleTime: 30000 })
 }
 
 export function useUser(id: string) {
-  return useQuery({ queryKey: ['users', id], queryFn: () => authApi.getUser(id).then(r => r.data), enabled: !!id })
+  return useQuery({ queryKey: ['users', id], queryFn: () => authApi.getUser(id).then(r => r.data), enabled: !!id, staleTime: 30000 })
 }
 
 export function useCreateUser() {
@@ -58,7 +58,7 @@ export function useDeleteUser() {
 }
 
 export function useRoles() {
-  return useQuery({ queryKey: ['roles'], queryFn: () => authApi.listRoles().then(r => r.data) })
+  return useQuery({ queryKey: ['roles'], queryFn: () => authApi.listRoles().then(r => r.data), staleTime: 30000 })
 }
 
 export function useCreateRole() {
@@ -86,11 +86,11 @@ export function useDeleteRole() {
 }
 
 export function usePermissions() {
-  return useQuery({ queryKey: ['permissions'], queryFn: () => authApi.listPermissions().then(r => r.data) })
+  return useQuery({ queryKey: ['permissions'], queryFn: () => authApi.listPermissions().then(r => r.data), staleTime: 30000 })
 }
 
 export function useRolePermissions(roleId: string) {
-  return useQuery({ queryKey: ['roles', roleId, 'permissions'], queryFn: () => authApi.getRolePermissions(roleId).then(r => r.data), enabled: !!roleId })
+  return useQuery({ queryKey: ['roles', roleId, 'permissions'], queryFn: () => authApi.getRolePermissions(roleId).then(r => r.data), enabled: !!roleId, staleTime: 30000 })
 }
 
 export function useAssignPermissions() {
@@ -103,5 +103,5 @@ export function useAssignPermissions() {
 }
 
 export function useAuditLogs(params: { userId?: string; action?: string; entityType?: string; page?: number; size?: number } = {}) {
-  return useQuery({ queryKey: ['audit-logs', params], queryFn: () => authApi.getAuditLogs(params).then(r => r.data) })
+  return useQuery({ queryKey: ['audit-logs', params], queryFn: () => authApi.getAuditLogs(params).then(r => r.data), staleTime: 30000 })
 }

@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { Helmet } from 'react-helmet-async'
 
 interface SeoHeadProps {
@@ -14,11 +15,11 @@ export function SeoHead({ title, description }: SeoHeadProps) {
     <Helmet>
       <title>{fullTitle}</title>
       {description && (
-        <>
+        <Fragment>
           <meta name="description" content={description} />
           <meta property="og:description" content={description} />
           <meta name="twitter:description" content={description} />
-        </>
+        </Fragment>
       )}
       <meta property="og:title" content={fullTitle} />
       <meta name="twitter:title" content={fullTitle} />

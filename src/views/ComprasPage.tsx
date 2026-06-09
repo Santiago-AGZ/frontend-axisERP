@@ -274,7 +274,7 @@ export function ComprasPage() {
                 </table>
               </div>
               <div className="flex justify-end font-bold">Total: ${total.toLocaleString()}</div>
-              <DialogFooter><Button type="submit" disabled={createMutation.isPending || items.length === 0}>Crear Compra</Button></DialogFooter>
+              <DialogFooter><Button type="submit" disabled={createMutation.isPending || items.length === 0}>Crear orden de compra</Button></DialogFooter>
             </form>
           </Form>
         </DialogContent>
