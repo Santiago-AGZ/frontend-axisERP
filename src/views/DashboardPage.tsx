@@ -355,9 +355,8 @@ export function DashboardPage() {
   const invNormal = invData ? invData.totalProducts - invData.lowStockCount - invData.depletedCount : 0
 
   return (
-    <>
+    <div className="flex flex-col gap-6" role="region" aria-label="Panel de control ejecutivo">
       <SeoHead title="Dashboard" description="Panel ejecutivo con metricas en tiempo real de ventas, inventario y clientes." />
-      <div className="flex flex-col gap-6" role="region" aria-label="Panel de control ejecutivo">
       <div><h1 className="text-3xl font-bold tracking-tight">Dashboard</h1><p className="text-sm text-muted-foreground">Panel ejecutivo de AxisERP</p></div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -442,6 +441,6 @@ export function DashboardPage() {
         )}
         {salesData && <RecentSalesTimeline data={salesData} />}
       </div>
-    </>
+    </div>
   )
 }
