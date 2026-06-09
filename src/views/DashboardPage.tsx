@@ -305,39 +305,39 @@ export function DashboardPage() {
     queryKey: queryKeys.reports.dashboard,
     queryFn: () => reportService.getDashboard(),
     enabled: isAdmin,
-    staleTime: 60000,
+    staleTime: 120000,
     retry: false,
   })
 
   const salesReport = useQuery({
     queryKey: queryKeys.reports.sales({ startDate: monthAgo, endDate: todayStr }),
     queryFn: () => reportService.getSalesReport({ startDate: monthAgo, endDate: todayStr }),
-    enabled: isAdmin,
-    staleTime: 60000,
+    enabled: isAdmin && dashboard.isSuccess,
+    staleTime: 120000,
     retry: false,
   })
 
   const inventoryReport = useQuery({
     queryKey: queryKeys.reports.inventory({}),
     queryFn: () => reportService.getInventoryReport(),
-    enabled: isAdmin,
-    staleTime: 60000,
+    enabled: isAdmin && salesReport.isSuccess,
+    staleTime: 120000,
     retry: false,
   })
 
   const topProducts = useQuery({
     queryKey: queryKeys.reports.topProducts({ startDate: monthAgo, endDate: todayStr, limit: 10 }),
     queryFn: () => reportService.getTopProducts({ startDate: monthAgo, endDate: todayStr, limit: 10 }),
-    enabled: isAdmin,
-    staleTime: 60000,
+    enabled: isAdmin && inventoryReport.isSuccess,
+    staleTime: 120000,
     retry: false,
   })
 
   const frequentCustomers = useQuery({
     queryKey: queryKeys.reports.frequentCustomers({ startDate: monthAgo, endDate: todayStr, limit: 5 }),
     queryFn: () => reportService.getFrequentCustomers({ startDate: monthAgo, endDate: todayStr, limit: 5 }),
-    enabled: isAdmin,
-    staleTime: 60000,
+    enabled: isAdmin && topProducts.isSuccess,
+    staleTime: 120000,
     retry: false,
   })
 
