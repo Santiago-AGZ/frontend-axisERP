@@ -305,6 +305,7 @@ export function DashboardPage() {
     queryKey: queryKeys.reports.dashboard,
     queryFn: () => reportService.getDashboard(),
     enabled: isAdmin,
+    staleTime: 60000,
     retry: false,
   })
 
@@ -312,6 +313,7 @@ export function DashboardPage() {
     queryKey: queryKeys.reports.sales({ startDate: monthAgo, endDate: todayStr }),
     queryFn: () => reportService.getSalesReport({ startDate: monthAgo, endDate: todayStr }),
     enabled: isAdmin,
+    staleTime: 60000,
     retry: false,
   })
 
@@ -319,6 +321,7 @@ export function DashboardPage() {
     queryKey: queryKeys.reports.inventory({}),
     queryFn: () => reportService.getInventoryReport(),
     enabled: isAdmin,
+    staleTime: 60000,
     retry: false,
   })
 
@@ -326,6 +329,7 @@ export function DashboardPage() {
     queryKey: queryKeys.reports.topProducts({ startDate: monthAgo, endDate: todayStr, limit: 10 }),
     queryFn: () => reportService.getTopProducts({ startDate: monthAgo, endDate: todayStr, limit: 10 }),
     enabled: isAdmin,
+    staleTime: 60000,
     retry: false,
   })
 
@@ -333,6 +337,7 @@ export function DashboardPage() {
     queryKey: queryKeys.reports.frequentCustomers({ startDate: monthAgo, endDate: todayStr, limit: 5 }),
     queryFn: () => reportService.getFrequentCustomers({ startDate: monthAgo, endDate: todayStr, limit: 5 }),
     enabled: isAdmin,
+    staleTime: 60000,
     retry: false,
   })
 
