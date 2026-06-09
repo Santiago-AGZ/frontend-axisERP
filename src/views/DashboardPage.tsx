@@ -298,45 +298,11 @@ function InventarioDashboard() {
 export function DashboardPage() {
   const user = useAuthStore((state) => state.user)
   const isAdmin = user?.role === 'ADMIN'
-  const todayStr = today()
-  const monthAgo = thirtyDaysAgo()
 
   const dashboard = useQuery({
     queryKey: queryKeys.reports.dashboard,
     queryFn: () => reportService.getDashboard(),
     enabled: isAdmin,
-    staleTime: 120000,
-    retry: false,
-  })
-
-  const salesReport = useQuery({
-    queryKey: queryKeys.reports.sales({ startDate: monthAgo, endDate: todayStr }),
-    queryFn: () => reportService.getSalesReport({ startDate: monthAgo, endDate: todayStr }),
-    enabled: isAdmin && dashboard.isSuccess,
-    staleTime: 120000,
-    retry: false,
-  })
-
-  const inventoryReport = useQuery({
-    queryKey: queryKeys.reports.inventory({}),
-    queryFn: () => reportService.getInventoryReport(),
-    enabled: isAdmin && salesReport.isSuccess,
-    staleTime: 120000,
-    retry: false,
-  })
-
-  const topProducts = useQuery({
-    queryKey: queryKeys.reports.topProducts({ startDate: monthAgo, endDate: todayStr, limit: 10 }),
-    queryFn: () => reportService.getTopProducts({ startDate: monthAgo, endDate: todayStr, limit: 10 }),
-    enabled: isAdmin && inventoryReport.isSuccess,
-    staleTime: 120000,
-    retry: false,
-  })
-
-  const frequentCustomers = useQuery({
-    queryKey: queryKeys.reports.frequentCustomers({ startDate: monthAgo, endDate: todayStr, limit: 5 }),
-    queryFn: () => reportService.getFrequentCustomers({ startDate: monthAgo, endDate: todayStr, limit: 5 }),
-    enabled: isAdmin && topProducts.isSuccess,
     staleTime: 120000,
     retry: false,
   })
@@ -355,23 +321,20 @@ export function DashboardPage() {
     )
   }
 
-  const isLoading = dashboard.isLoading || salesReport.isLoading || inventoryReport.isLoading
-
-  if (isLoading) {
+  if (dashboard.isLoading) {
     return (
       <div className="flex flex-col gap-6">
         <div><h1 className="text-3xl font-bold tracking-tight">Dashboard</h1><p className="text-sm text-muted-foreground">Panel ejecutivo de AxisERP</p></div>
         <KpiSkeleton />
-        <div className="grid gap-4 lg:grid-cols-2"><Card><CardHeader><Skeleton className="h-5 w-40" /></CardHeader><CardContent><Skeleton className="h-[280px] w-full" /></CardContent></Card><Card><CardHeader><Skeleton className="h-5 w-40" /></CardHeader><CardContent><Skeleton className="h-[280px] w-full" /></CardContent></Card></div>
       </div>
     )
   }
 
-  if (dashboard.isError && isAdmin) {
+  if (dashboard.isError) {
     return (
       <div className="flex flex-col gap-6">
         <div><h1 className="text-3xl font-bold tracking-tight">Dashboard</h1><p className="text-sm text-muted-foreground">Panel ejecutivo de AxisERP</p></div>
-        <ErrorState message="Error al cargar datos del dashboard. Verifica la conexión con el backend." onRetry={() => { dashboard.refetch(); salesReport.refetch(); inventoryReport.refetch(); topProducts.refetch(); frequentCustomers.refetch() }} />
+        <ErrorState message="Error al cargar datos del dashboard." onRetry={() => dashboard.refetch()} />
       </div>
     )
   }
@@ -379,11 +342,6 @@ export function DashboardPage() {
   if (!dashboard.data) return null
 
   const dashData = dashboard.data!
-  const salesData = salesReport.data!
-  const invData = inventoryReport.data!
-  const topData = topProducts.data!
-  const freqData = frequentCustomers.data!
-  const invNormal = invData ? invData.totalProducts - invData.lowStockCount - invData.depletedCount : 0
 
   return (
     <div className="flex flex-col gap-6" role="region" aria-label="Panel de control ejecutivo">
@@ -397,87 +355,27 @@ export function DashboardPage() {
         <MetricCard title="Total Clientes" value={dashData.totalCustomers} icon={Users} variant="info" />
       </div>
 
-      {salesData && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard title="Transacciones (30d)" value={salesData.totalTransactions} icon={ShoppingCart} variant="info" />
-          <MetricCard title="Ingresos (30d)" value={formatCurrency(salesData.totalRevenue)} icon={TrendingUp} variant="success" />
-          <MetricCard title="IVA (30d)" value={formatCurrency(salesData.totalTax)} icon={Receipt} variant="warning" />
-          <MetricCard title="Descuentos (30d)" value={formatCurrency(salesData.totalDiscount)} icon={Percent} variant="danger" />
-        </div>
-      )}
-
-      {invData && (
-        <div className="grid gap-4 sm:grid-cols-4">
-          <MetricCard title="Total Productos" value={invData.totalProducts} icon={Package} variant="info" />
-          <MetricCard title="Stock Normal" value={invNormal} icon={Package} variant="success" />
-          <MetricCard title="Stock Bajo" value={invData.lowStockCount} icon={AlertTriangle} variant="warning" />
-          <MetricCard title="Agotados" value={invData.depletedCount} icon={AlertTriangle} variant="danger" />
-        </div>
-      )}
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        {salesData && <SalesFunnel data={salesData} />}
-        {invData && <InventoryDonut data={invData} />}
-      </div>
-
-      {salesData && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <RevenueTrend data={salesData} />
-        </div>
-      )}
-
-      {invData && <LowStockSection data={invData} />}
-
-      {topData && (
-        <SectionHeader title="Productos Más Vendidos" description={`Período: ${new Date(topData.startDate).toLocaleDateString()} - ${new Date(topData.endDate).toLocaleDateString()}`} />
-      )}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {topData && (
-          <Card>
-            <CardHeader><CardTitle className="text-sm font-medium">Top Productos por Ingresos</CardTitle></CardHeader>
-            <CardContent>
-              <div role="img" aria-label="Gráfico de barras de productos más vendidos">
-                <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={topData.rankings.map(r => ({ name: r.productName.length > 16 ? r.productName.slice(0, 16) + '...' : r.productName, revenue: r.totalRevenue }))} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis type="number" className="text-xs" tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                    <YAxis type="category" dataKey="name" width={130} className="text-xs" />
-                    <Tooltip formatter={(val) => formatCurrency(Number(val))} />
-                    <Bar dataKey="revenue" radius={[0, 6, 6, 0]}>
-                      {topData.rankings.map((_, i) => (<Cell key={i} fill={getColor(i)} />))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        {topData && <TopProductsRanking data={topData} />}
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        {freqData && freqData.customers.length > 0 && (
-          <Card>
-            <CardHeader><CardTitle className="text-sm font-medium">Clientes Frecuentes</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {freqData.customers.map((c, i) => (
-                  <div key={c.customerId} className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50">
-                    <div className="flex items-center gap-3">
-                      <span className={`flex size-7 items-center justify-center rounded-full text-xs font-bold ${i === 0 ? 'text-amber-500' : i === 1 ? 'text-slate-400' : i === 2 ? 'text-amber-700' : 'text-muted-foreground'}`}>
-                        {i < 3 ? <Medal className={`size-4 ${i === 0 ? 'fill-amber-400 text-amber-400' : i === 1 ? 'fill-slate-400 text-slate-400' : 'fill-amber-700 text-amber-700'}`} /> : `#${c.position}`}
-                      </span>
-                      <div><p className="text-sm font-medium">{c.customerName}</p><p className="text-xs text-muted-foreground">{c.totalVisits} compras</p></div>
-                    </div>
-                    <div className="text-right text-sm"><p className="font-medium">{formatCurrency(c.totalSpent)}</p><p className="text-xs text-muted-foreground">Ticket: {formatCurrency(c.averageTicket)}</p></div>
+      {dashData.recentSales.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="text-sm font-medium">Ventas Recientes</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {dashData.recentSales.slice(0, 8).map((sale) => (
+                <div key={sale.id} className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">{sale.saleNumber}</p>
+                    <p className="text-xs text-muted-foreground">{timeAgo(sale.createdAt)}</p>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-        {salesData && <RecentSalesTimeline data={salesData} />}
-      </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold">{formatCurrency(sale.total)}</span>
+                    <Badge variant={statusBadge[sale.status] ?? 'outline'}>{sale.status}</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
