@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { AppLayout } from '@/components/AppLayout'
 import { LoginPage } from '@/views/LoginPage'
+import { ResetPasswordPage } from '@/views/ResetPasswordPage'
 import { DashboardPage } from '@/views/DashboardPage'
 import { ClientesPage } from '@/views/ClientesPage'
 import { ProductosPage } from '@/views/ProductosPage'
@@ -17,6 +18,7 @@ import { RoleGuard } from '@/components/shared/role-guard'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
+  { path: '/reset-password', element: <ResetPasswordPage /> },
   {
     path: '/',
     element: (
