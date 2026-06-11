@@ -90,7 +90,7 @@ export function VentasPage() {
   const { fields, append, remove } = useFieldArray({ control: form.control, name: 'items' })
   const items = form.watch('items')
   const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
-  const discount = form.watch('discount') || 0
+  const discount = form.watch('discount') ?? 0
   const discountAmount = subtotal * (discount / 100)
   const iva = (subtotal - discountAmount) * 0.19
   const total = subtotal - discountAmount + iva

@@ -92,7 +92,7 @@ export function ClientesPage() {
   const [historyCustomer, setHistoryCustomer] = useState<CustomerResponse | null>(null)
 
   const { data: customerHistory, isLoading: historyLoading } = useQuery({
-    queryKey: queryKeys.sales.customers.history(historyCustomer.id),
+    queryKey: queryKeys.sales.customers.history(historyCustomer?.id ?? ''),
     queryFn: () => salesService.getCustomerHistory(historyCustomer!.id),
     enabled: !!historyCustomer,
     staleTime: 60000,

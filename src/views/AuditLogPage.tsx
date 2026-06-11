@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { authService } from '@/services/auth'
+import { queryKeys } from '@/lib/query-keys'
 import { PageHeader } from '@/components/shared/page-header'
 import { DataTable, type Column } from '@/components/shared/data-table'
 import { SeoHead } from '@/components/shared/seo-head'
@@ -36,7 +37,7 @@ export default function AuditLogPage() {
   const [page, setPage] = useState(1)
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['audit-logs', { page, size: 20 }],
+    queryKey: queryKeys.auth.auditLogs.list({ page, size: 20 }),
     queryFn: () => authService.getAuditLogs({ page, size: 20 }),
     staleTime: 30000,
   })
