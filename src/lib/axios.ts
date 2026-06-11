@@ -5,7 +5,7 @@ const REFRESH_TOKEN_KEY = 'axiserp-refresh-token'
 
 function getApiBaseURL(): string {
   const apiUrl = import.meta.env.VITE_API_URL
-  if (apiUrl && (import.meta.env.PROD || !apiUrl.includes('localhost'))) {
+  if (apiUrl) {
     return `${apiUrl}/api/v1`
   }
   return '/api/v1'

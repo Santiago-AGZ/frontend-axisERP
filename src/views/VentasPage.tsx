@@ -25,23 +25,19 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { SeoHead } from '@/components/shared/seo-head'
+import { useAuthStore } from '@/stores/auth'
 
+const noHTML = (v: string) => !/[<>&"']/.test(v)
 const saleItemSchema = z.object({
-  productId: z.string().min(1),
-  productName: z.string().min(1),
+  productId: z.string().min(1).refine(noHTML),
+  productName: z.string().min(1).refine(noHTML),
   quantity: z.number().min(1),
   unitPrice: z.number().min(0.01),
   discount: z.number().min(0),
 })
 
-const createSaleSchema = z.object({
-  customerId: z.string().min(1, 'El cliente es requerido'),
-  items: z.array(saleItemSchema).min(1, 'Agrega al menos un producto'),
-  discount: z.number().min(0).max(30),
-  notes: z.string().optional(),
-})
-
-type CreateSaleValues = z.infer<typeof createSaleSchema>
+type CreateSaleValues = z.infer<ReturnType<typeof createSaleSchema>>
 
 const statusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   CONFIRMADA: 'outline',
@@ -53,8 +49,17 @@ const statusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destruc
 
 export function VentasPage() {
   const qc = useQueryClient()
+  const { user } = useAuthStore()
+  const isAdmin = user?.role === 'ADMIN'
   const [page, setPage] = useState(1)
   const [open, setOpen] = useState(false)
+
+  const createSaleSchema = z.object({
+    customerId: z.string().min(1, 'El cliente es requerido').refine(noHTML),
+    items: z.array(saleItemSchema).min(1, 'Agrega al menos un producto'),
+    discount: z.number().min(0).max(isAdmin ? 100 : 30),
+    notes: z.string().refine(noHTML).optional(),
+  })
   const [viewSale, setViewSale] = useState<SaleResponse | null>(null)
   const [voidOpen, setVoidOpen] = useState(false)
   const [voidingId, setVoidingId] = useState<string | null>(null)
@@ -99,6 +104,7 @@ export function VentasPage() {
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.sales.sales.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Venta creada')
       setOpen(false)
       form.reset()
@@ -111,7 +117,12 @@ export function VentasPage() {
 
   const confirmMutation = useMutation({
     mutationFn: (id: string) => salesService.confirmSale(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.sales.sales.all }); toast.success('Venta confirmada') },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.sales.sales.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
+      qc.invalidateQueries({ queryKey: queryKeys.inventory.all })
+      toast.success('Venta confirmada')
+    },
     onError: (err) => {
       const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'Error al confirmar venta'
       toast.error(msg)
@@ -120,7 +131,12 @@ export function VentasPage() {
 
   const payMutation = useMutation({
     mutationFn: (id: string) => salesService.paySale(id),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.sales.sales.all }); toast.success('Pago registrado') },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.sales.sales.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
+      qc.invalidateQueries({ queryKey: queryKeys.inventory.all })
+      toast.success('Pago registrado')
+    },
     onError: (err) => {
       const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'Error al registrar pago'
       toast.error(msg)
@@ -131,6 +147,7 @@ export function VentasPage() {
     mutationFn: (id: string) => salesService.voidSale(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.sales.sales.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Venta anulada')
       setVoidOpen(false)
       setVoidingId(null)
@@ -191,6 +208,7 @@ export function VentasPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <SeoHead title="Ventas" description="Registro de ventas del sistema AxisERP." />
       <PageHeader
         title="Ventas"
         description="Registro de ventas"
@@ -267,7 +285,7 @@ export function VentasPage() {
                 <div className="flex justify-between"><span>Subtotal:</span><span>${subtotal.toLocaleString()}</span></div>
                 <div className="flex items-center justify-between gap-4">
                   <span>Descuento (%):</span>
-                  <Input type="number" min={0} max={30} className="h-7 w-20 text-right" value={form.watch('discount') ?? 0} onChange={(e) => form.setValue('discount', parseFloat(e.target.value) || 0)} />
+                  <Input type="number" min={0} max={isAdmin ? 100 : 30} className="h-7 w-20 text-right" value={form.watch('discount') ?? 0} onChange={(e) => form.setValue('discount', parseFloat(e.target.value) || 0)} />
                 </div>
                 <div className="flex justify-between"><span>IVA (19%):</span><span>${iva.toLocaleString()}</span></div>
                 <Separator />

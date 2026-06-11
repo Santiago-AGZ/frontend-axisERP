@@ -10,6 +10,7 @@ import {
   UserCog,
   Tags,
   BarChart3,
+  ClipboardList,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
@@ -26,6 +27,7 @@ const allNavItems = [
   { icon: Truck, label: 'Proveedores', to: '/proveedores', roles: ['ADMIN', 'INVENTARIO'] },
   { icon: FileText, label: 'Compras', to: '/compras', roles: ['ADMIN', 'INVENTARIO'] },
   { icon: BarChart3, label: 'Reportes', to: '/reportes', roles: ['ADMIN'] },
+  { icon: ClipboardList, label: 'Auditoría', to: '/auditoria', roles: ['ADMIN'] },
 ]
 
 export function Sidebar() {

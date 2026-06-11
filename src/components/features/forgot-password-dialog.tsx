@@ -14,8 +14,9 @@ import {
 } from '@/components/ui/form'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
+const noHTML = (v: string) => !/[<>&"']/.test(v)
 const resetSchema = z.object({
-  email: z.string().email('Ingresa un email válido'),
+  email: z.string().email('Ingresa un email válido').refine(noHTML),
 })
 
 type ResetValues = z.infer<typeof resetSchema>

@@ -90,7 +90,7 @@ export function DashboardPage() {
     queryKey: queryKeys.reports.dashboard,
     queryFn: () => reportService.getDashboard(),
     enabled: isAdmin,
-    staleTime: 120000,
+    staleTime: 180000,
     retry: false,
   })
 

@@ -23,6 +23,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { SeoHead } from '@/components/shared/seo-head'
 
 const orderStatusFlow: Record<string, string> = {
   BORRADOR: 'PENDIENTE',
@@ -38,17 +39,18 @@ const statusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destruc
   CANCELADA: 'destructive',
 }
 
+const noHTML = (v: string) => !/[<>&"']/.test(v)
 const purchaseItemSchema = z.object({
-  productId: z.string().min(1),
-  productName: z.string().min(1),
+  productId: z.string().min(1).refine(noHTML),
+  productName: z.string().min(1).refine(noHTML),
   quantity: z.number().min(1),
   unitPrice: z.number().min(0.01),
 })
 
 const createPurchaseSchema = z.object({
-  supplierId: z.string().min(1, 'El proveedor es requerido'),
+  supplierId: z.string().min(1, 'El proveedor es requerido').refine(noHTML),
   items: z.array(purchaseItemSchema).min(1, 'Agrega al menos un producto'),
-  notes: z.string().optional(),
+  notes: z.string().refine(noHTML).optional(),
 })
 
 type CreatePurchaseValues = z.infer<typeof createPurchaseSchema>
@@ -98,6 +100,7 @@ export function ComprasPage() {
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.purchases.purchases.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Compra creada')
       setOpen(false)
       form.reset()
@@ -110,6 +113,7 @@ export function ComprasPage() {
       purchaseService.updatePurchaseStatus(id, status),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.purchases.purchases.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Estado actualizado')
     },
     onError: () => toast.error('Error al cambiar estado'),
@@ -120,6 +124,8 @@ export function ComprasPage() {
       purchaseService.receivePurchase(id, { items }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.purchases.purchases.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
+      qc.invalidateQueries({ queryKey: queryKeys.inventory.all })
       toast.success('Compra recibida')
       setReceiveOpen(false)
       setReceivePurchase(null)
@@ -131,6 +137,7 @@ export function ComprasPage() {
     mutationFn: (id: string) => purchaseService.cancelPurchase(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.purchases.purchases.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Compra cancelada')
       setCancelOpen(false)
       setCancelId(null)
@@ -203,6 +210,7 @@ export function ComprasPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <SeoHead title="Compras" description="Órdenes de compra del sistema AxisERP." />
       <PageHeader
         title="Compras"
         description="Gestión de órdenes de compra"

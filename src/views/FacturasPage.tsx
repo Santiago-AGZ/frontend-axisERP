@@ -19,6 +19,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
+import { SeoHead } from '@/components/shared/seo-head'
 
 const statusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   CONFIRMADA: 'outline',
@@ -39,6 +40,14 @@ export function FacturasPage() {
     queryKey: queryKeys.sales.sales.list({ search, status: status || undefined, page, size: 20 }),
     queryFn: () => salesService.listSales({ status: status || undefined, page, size: 20 }),
   })
+
+  const { data: customersData } = useQuery({
+    queryKey: queryKeys.sales.customers.list({}),
+    queryFn: () => salesService.listCustomers({ page: 1, size: 200 }),
+    staleTime: 120000,
+  })
+
+  const customerMap = new Map((customersData?.data ?? []).map(c => [c.id, c.name]))
 
   const sales = salesData?.data ?? []
   const pagination = salesData?.pagination ?? null
@@ -86,7 +95,7 @@ export function FacturasPage() {
     },
     {
       header: 'Cliente',
-      accessor: (s) => s.items[0]?.productName ?? '—',
+      accessor: (s) => customerMap.get(s.customerId) ?? '—',
     },
     {
       header: 'Fecha',
@@ -146,6 +155,7 @@ export function FacturasPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <SeoHead title="Facturas" description="Consulta y descarga de facturas electrónicas." />
       <PageHeader
         title="Facturas"
         description="Consulta y descarga de facturas electrónicas"

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Search, Plus, Pencil, Ban, Package } from 'lucide-react'
+import { Search, Plus, Pencil, Ban, CheckCircle, Package } from 'lucide-react'
 import { toast } from 'sonner'
 import { catalogService } from '@/services/catalog'
 import { queryKeys } from '@/lib/query-keys'
@@ -12,6 +12,7 @@ import { DataTable, type Column } from '@/components/shared/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
@@ -22,12 +23,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { SeoHead } from '@/components/shared/seo-head'
 
+const noHTML = (v: string) => !/[<>&"']/.test(v)
 const productSchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido'),
-  codigo: z.string().min(1, 'El código es requerido'),
-  description: z.string().optional(),
-  categoryId: z.string().min(1, 'La categoría es requerida'),
+  name: z.string().min(1, 'El nombre es requerido').refine(noHTML),
+  codigo: z.string().min(1, 'El código es requerido').refine(noHTML),
+  description: z.string().refine(noHTML).optional(),
+  categoryId: z.string().min(1, 'La categoría es requerida').refine(noHTML),
   purchasePrice: z.number().min(0.01, 'El precio debe ser mayor a 0'),
   salePrice: z.number().min(0.01, 'El precio debe ser mayor a 0'),
 })
@@ -51,6 +54,7 @@ export function ProductosPage() {
   const [page, setPage] = useState(1)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<ProductItem | null>(null)
+  const [confirmAction, setConfirmAction] = useState<{type: 'deactivate'|'reactivate', id: string} | null>(null)
 
   const { data: productsData, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.catalog.products.list({ search, page, size: 20 }),
@@ -68,6 +72,7 @@ export function ProductosPage() {
     mutationFn: (data: ProductValues) => catalogService.createProduct(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.catalog.products.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Producto creado')
       setOpen(false)
     },
@@ -79,6 +84,7 @@ export function ProductosPage() {
       catalogService.updateProduct(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.catalog.products.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Producto actualizado')
       setOpen(false)
     },
@@ -89,9 +95,20 @@ export function ProductosPage() {
     mutationFn: (id: string) => catalogService.deactivateProduct(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.catalog.products.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Producto desactivado')
     },
     onError: () => toast.error('Error al desactivar producto'),
+  })
+
+  const reactivateMutation = useMutation({
+    mutationFn: (id: string) => catalogService.reactivateProduct(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.catalog.products.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
+      toast.success('Producto activado')
+    },
+    onError: () => toast.error('Error al activar producto'),
   })
 
   const form = useForm<ProductValues>({
@@ -168,8 +185,13 @@ export function ProductosPage() {
             <Pencil className="size-4" />
           </Button>
           {p.status === 'ACTIVO' && (
-            <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Desactivar" onClick={() => deactivateMutation.mutate(p.id)}>
+            <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Desactivar" onClick={() => setConfirmAction({type:'deactivate', id: p.id})}>
               <Ban className="size-4" />
+            </Button>
+          )}
+          {p.status === 'INACTIVO' && (
+            <Button variant="ghost" size="icon" className="size-8 text-emerald-600" aria-label="Activar producto" onClick={() => setConfirmAction({type:'reactivate', id: p.id})}>
+              <CheckCircle className="size-4" />
             </Button>
           )}
         </div>
@@ -179,6 +201,7 @@ export function ProductosPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <SeoHead title="Productos" description="Catálogo de productos del sistema AxisERP." />
       <PageHeader
         title="Productos"
         description="Catálogo de productos"
@@ -263,6 +286,20 @@ export function ProductosPage() {
           </Form>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog
+        open={!!confirmAction}
+        onOpenChange={(open) => { if (!open) setConfirmAction(null) }}
+        onConfirm={() => {
+          if (confirmAction?.type === 'deactivate') deactivateMutation.mutate(confirmAction.id)
+          else if (confirmAction?.type === 'reactivate') reactivateMutation.mutate(confirmAction.id)
+          setConfirmAction(null)
+        }}
+        title={confirmAction?.type === 'deactivate' ? 'Desactivar Producto' : 'Reactivar Producto'}
+        description={confirmAction?.type === 'deactivate' ? '¿Estás seguro de que deseas desactivar este producto? No estará disponible para ventas.' : '¿Estás seguro de que deseas reactivar este producto? Volverá a estar disponible para ventas.'}
+        confirmText={confirmAction?.type === 'deactivate' ? 'Desactivar' : 'Reactivar'}
+        variant={confirmAction?.type === 'deactivate' ? 'destructive' : 'default'}
+        isLoading={confirmAction?.type === 'deactivate' ? deactivateMutation.isPending : reactivateMutation.isPending}
+      />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { api } from '@/lib/axios'
+import { api, getStoredRefreshToken } from '@/lib/axios'
 import type { ApiResponse, PaginationMeta } from '@/types/api'
 
 interface LoginRequest {
@@ -41,13 +41,13 @@ interface UserResponse {
 interface CreateUserRequest {
   name: string
   email: string
-  roleId: string
+  role: string
 }
 
 interface UpdateUserRequest {
-  name?: string
-  email?: string
-  roleId?: string
+  name: string
+  email: string
+  role?: string
 }
 
 interface RoleResponse {
@@ -88,7 +88,8 @@ export const authService = {
   },
 
   logout: async () => {
-    await api.post('/auth/logout')
+    const refreshToken = getStoredRefreshToken()
+    await api.post('/auth/logout', { refreshToken })
   },
 
   refresh: async (refreshToken: string) => {
@@ -121,8 +122,8 @@ export const authService = {
     return response.data.data
   },
 
-  deactivateUser: async (id: string) => {
-    const response = await api.patch<ApiResponse<UserResponse>>(`/usuarios/${id}/desactivar`)
+  deactivateUser: async (id: string, currentPassword: string) => {
+    const response = await api.patch<ApiResponse<UserResponse>>(`/usuarios/${id}/desactivar`, null, { params: { currentPassword } })
     return response.data.data
   },
 
@@ -131,8 +132,8 @@ export const authService = {
     return response.data.data
   },
 
-  deleteUser: async (id: string) => {
-    const response = await api.delete<ApiResponse<UserResponse>>(`/usuarios/${id}`)
+  deleteUser: async (id: string, currentPassword: string) => {
+    const response = await api.delete<ApiResponse<UserResponse>>(`/usuarios/${id}`, { params: { currentPassword } })
     return response.data.data
   },
 

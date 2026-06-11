@@ -20,9 +20,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { ForgotPasswordDialog } from '@/components/features/forgot-password-dialog'
 
+const noHTML = (v: string) => !/[<>&"']/.test(v)
 const loginSchema = z.object({
-  email: z.string().email('Ingresa un email válido'),
-  password: z.string().min(1, 'La contraseña es requerida'),
+  email: z.string().email('Ingresa un email válido').refine(noHTML, { message: 'Email inválido' }),
+  password: z.string().min(1, 'La contraseña es requerida').refine(noHTML, { message: 'Contraseña inválida' }),
 })
 
 type LoginValues = z.infer<typeof loginSchema>

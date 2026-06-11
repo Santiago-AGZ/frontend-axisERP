@@ -48,28 +48,10 @@ export interface CategoryResponse {
   updatedAt: string
 }
 
-interface CategoryTreeResponse {
-  id: string
-  name: string
-  description?: string
-  parentId?: string
-  status: string
-  children: CategoryTreeResponse[]
-}
-
 interface CategoryRequest {
   name: string
   description?: string
   parentId?: string
-}
-
-interface BarcodeResponse {
-  id: string
-  productId: string
-  barcodeValue: string
-  barcodeType: string
-  isPrimary: boolean
-  createdAt: string
 }
 
 export const catalogService = {
@@ -99,7 +81,7 @@ export const catalogService = {
   },
 
   reactivateProduct: async (id: string) => {
-    const response = await api.patch<ApiResponse<ProductResponse>>(`/productos/${id}/reactivar`)
+    const response = await api.patch<ApiResponse<ProductResponse>>(`/productos/${id}/activar`)
     return response.data.data
   },
 
@@ -128,22 +110,9 @@ export const catalogService = {
     return response.data.data
   },
 
-  getCategoryTree: async () => {
-    const response = await api.get<ApiResponse<CategoryTreeResponse[]>>('/categorias/arbol')
+  reactivateCategory: async (id: string) => {
+    const response = await api.patch<ApiResponse<CategoryResponse>>(`/categorias/${id}/activar`)
     return response.data.data
   },
 
-  listBarcodes: async (productId: string) => {
-    const response = await api.get<ApiResponse<BarcodeResponse[]>>(`/productos/${productId}/barcodes`)
-    return response.data.data
-  },
-
-  createBarcode: async (productId: string, data: { barcodeValue: string; barcodeType: string; isPrimary?: boolean }) => {
-    const response = await api.post<ApiResponse<BarcodeResponse>>(`/productos/${productId}/barcodes`, data)
-    return response.data.data
-  },
-
-  deleteBarcode: async (productId: string, barcodeId: string) => {
-    await api.delete(`/productos/${productId}/barcodes/${barcodeId}`)
-  },
 }

@@ -21,10 +21,12 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { SeoHead } from '@/components/shared/seo-head'
+const noHTML = (v: string) => !/[<>&"']/.test(v)
 const userFormSchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido').max(255),
-  email: z.string().email('Email inválido'),
-  role: z.string().min(1, 'El rol es requerido'),
+  name: z.string().min(1, 'El nombre es requerido').max(255).refine(noHTML),
+  email: z.string().email('Email inválido').refine(noHTML),
+  role: z.string().min(1, 'El rol es requerido').refine(noHTML),
 })
 
 type UserFormValues = z.infer<typeof userFormSchema>
@@ -58,6 +60,11 @@ export function UsuariosPage() {
   const pageSize = 20
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<UserListItem | null>(null)
+  const [confirmAction, setConfirmAction] = useState<{ type: 'deactivate' | 'delete'; userId: string } | null>(null)
+
+  const confirmForm = useForm<{ password: string }>({
+    defaultValues: { password: '' },
+  })
 
   const { data: roles } = useQuery({
     queryKey: queryKeys.auth.roles.all,
@@ -73,7 +80,7 @@ export function UsuariosPage() {
     mutationFn: (data: UserFormValues) => authService.createUser({
       name: data.name,
       email: data.email,
-      roleId: data.role,
+      role: data.role,
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.auth.users.all })
@@ -85,7 +92,7 @@ export function UsuariosPage() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UserFormValues }) =>
-      authService.updateUser(id, { name: data.name, email: data.email, roleId: data.role }),
+      authService.updateUser(id, { name: data.name, email: data.email, role: data.role }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.auth.users.all })
       toast.success('Usuario actualizado')
@@ -95,10 +102,12 @@ export function UsuariosPage() {
   })
 
   const deactivateMutation = useMutation({
-    mutationFn: (id: string) => authService.deactivateUser(id),
+    mutationFn: ({ id, currentPassword }: { id: string; currentPassword: string }) =>
+      authService.deactivateUser(id, currentPassword),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.auth.users.all })
       toast.success('Usuario desactivado')
+      setConfirmAction(null)
     },
     onError: () => toast.error('Error al desactivar usuario'),
   })
@@ -113,10 +122,12 @@ export function UsuariosPage() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => authService.deleteUser(id),
+    mutationFn: ({ id, currentPassword }: { id: string; currentPassword: string }) =>
+      authService.deleteUser(id, currentPassword),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.auth.users.all })
       toast.success('Usuario eliminado')
+      setConfirmAction(null)
     },
     onError: () => toast.error('Error al eliminar usuario'),
   })
@@ -195,7 +206,7 @@ export function UsuariosPage() {
             <Pencil className="size-4" />
           </Button>
           {u.status === 'ACTIVO' && (
-            <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Desactivar" onClick={() => deactivateMutation.mutate(u.id)}>
+            <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Desactivar" onClick={() => { setConfirmAction({ type: 'deactivate', userId: u.id }); confirmForm.reset({ password: '' }) }}>
               <Ban className="size-4" />
             </Button>
           )}
@@ -205,7 +216,7 @@ export function UsuariosPage() {
             </Button>
           )}
           {u.status !== 'ELIMINADO' && (
-            <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Eliminar" onClick={() => { if (confirm('¿Eliminar permanentemente este usuario?')) deleteMutation.mutate(u.id) }}>
+            <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Eliminar" onClick={() => { setConfirmAction({ type: 'delete', userId: u.id }); confirmForm.reset({ password: '' }) }}>
               <Trash2 className="size-4" />
             </Button>
           )}
@@ -216,6 +227,7 @@ export function UsuariosPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <SeoHead title="Usuarios" description="Gestión de usuarios del sistema AxisERP." />
       <PageHeader
         title="Usuarios"
         description="Gestión de usuarios del sistema"
@@ -315,6 +327,40 @@ export function UsuariosPage() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!confirmAction} onOpenChange={(open) => { if (!open) setConfirmAction(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{confirmAction?.type === 'deactivate' ? 'Desactivar usuario' : 'Eliminar usuario'}</DialogTitle>
+            <DialogDescription>
+              {confirmAction?.type === 'deactivate'
+                ? 'Esta acción desactivará al usuario. Ingresa tu contraseña para confirmar.'
+                : 'Esta acción eliminará permanentemente al usuario. Ingresa tu contraseña para confirmar.'}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={confirmForm.handleSubmit((data) => {
+            if (!confirmAction) return
+            if (confirmAction.type === 'deactivate') {
+              deactivateMutation.mutate({ id: confirmAction.userId, currentPassword: data.password })
+            } else {
+              deleteMutation.mutate({ id: confirmAction.userId, currentPassword: data.password })
+            }
+          })} className="flex flex-col gap-4">
+            <FormItem>
+              <FormLabel>Tu contraseña</FormLabel>
+              <FormControl>
+                <Input type="password" {...confirmForm.register('password', { required: true })} />
+              </FormControl>
+            </FormItem>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setConfirmAction(null)}>Cancelar</Button>
+              <Button type="submit" variant="destructive" disabled={deactivateMutation.isPending || deleteMutation.isPending}>
+                {deactivateMutation.isPending || deleteMutation.isPending ? 'Procesando...' : confirmAction?.type === 'deactivate' ? 'Desactivar' : 'Eliminar'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

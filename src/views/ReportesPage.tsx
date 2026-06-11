@@ -15,6 +15,8 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts'
+import { ErrorState } from '@/components/shared/error-state'
+import { SeoHead } from '@/components/shared/seo-head'
 
 const PIE_COLORS = [
   'oklch(0.596 0.145 163.225)',
@@ -48,13 +50,17 @@ function FrequentCustomersTab() {
   const [startDate, setStartDate] = useState(thirtyDaysAgo())
   const [endDate, setEndDate] = useState(today())
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.reports.frequentCustomers({ startDate, endDate, limit: 10 }),
     queryFn: () => reportService.getFrequentCustomers({ startDate, endDate, limit: 10 }),
   })
 
   if (isLoading) {
     return <Card><CardContent className="pt-6"><Skeleton className="h-64 w-full" /></CardContent></Card>
+  }
+
+  if (isError) {
+    return <Card><CardContent className="py-12"><ErrorState message="Error al cargar clientes frecuentes" onRetry={() => refetch()} /></CardContent></Card>
   }
 
   if (!data || data.customers.length === 0) {
@@ -137,7 +143,7 @@ function SalesReportTab() {
   const [startDate, setStartDate] = useState(thirtyDaysAgo())
   const [endDate, setEndDate] = useState(today())
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.reports.sales({ startDate, endDate }),
     queryFn: () => reportService.getSalesReport({ startDate, endDate }),
   })
@@ -167,7 +173,9 @@ function SalesReportTab() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <Card><CardContent className="py-12"><ErrorState message="Error al cargar el reporte de ventas" onRetry={() => refetch()} /></CardContent></Card>
+      ) : isLoading ? (
         <div className="grid gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (<Card key={i}><CardContent className="pt-6"><Skeleton className="h-20 w-full" /></CardContent></Card>))}
         </div>
@@ -241,10 +249,14 @@ function SalesReportTab() {
 }
 
 function InventoryReportTab() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.reports.inventory({}),
     queryFn: () => reportService.getInventoryReport(),
   })
+
+  if (isError) {
+    return <Card><CardContent className="py-12"><ErrorState message="Error al cargar el reporte de inventario" onRetry={() => refetch()} /></CardContent></Card>
+  }
 
   if (isLoading) {
     return <div className="grid gap-4 sm:grid-cols-3">{Array.from({ length: 3 }).map((_, i) => (<Card key={i}><CardContent className="pt-6"><Skeleton className="h-20 w-full" /></CardContent></Card>))}</div>
@@ -294,7 +306,7 @@ function TopProductsTab() {
   const [startDate, setStartDate] = useState(thirtyDaysAgo())
   const [endDate, setEndDate] = useState(today())
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.reports.topProducts({ startDate, endDate, limit: 10 }),
     queryFn: () => reportService.getTopProducts({ startDate, endDate, limit: 10 }),
   })
@@ -308,7 +320,9 @@ function TopProductsTab() {
         <div className="flex items-center gap-2"><label className="text-sm text-muted-foreground">Hasta</label><Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-44" /></div>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <Card><CardContent className="py-12"><ErrorState message="Error al cargar top productos" onRetry={() => refetch()} /></CardContent></Card>
+      ) : isLoading ? (
         <Card><CardContent className="pt-6"><Skeleton className="h-64 w-full" /></CardContent></Card>
       ) : data ? (
         <div className="grid gap-4 lg:grid-cols-2">
@@ -359,6 +373,7 @@ function TopProductsTab() {
 export function ReportesPage() {
   return (
     <div className="flex flex-col gap-6">
+      <SeoHead title="Reportes" description="Reportes y estadísticas del sistema AxisERP." />
       <PageHeader title="Reportes" description="Análisis y estadísticas del negocio" />
 
       <Tabs defaultValue="sales" className="space-y-6">

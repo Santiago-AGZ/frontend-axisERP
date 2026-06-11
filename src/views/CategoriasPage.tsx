@@ -12,6 +12,7 @@ import { DataTable, type Column } from '@/components/shared/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { ConfirmDialog } from '@/components/shared/confirm-dialog'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
@@ -22,11 +23,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { SeoHead } from '@/components/shared/seo-head'
 
+const noHTML = (v: string) => !/[<>&"']/.test(v)
 const categorySchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido'),
-  description: z.string().optional(),
-  parentId: z.string().optional(),
+  name: z.string().min(1, 'El nombre es requerido').refine(noHTML),
+  description: z.string().refine(noHTML).optional(),
+  parentId: z.string().refine(noHTML).optional(),
 })
 
 type CategoryValues = z.infer<typeof categorySchema>
@@ -46,6 +49,7 @@ export function CategoriasPage() {
   const [page, setPage] = useState(1)
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<CategoryItem | null>(null)
+  const [confirmAction, setConfirmAction] = useState<{type: 'deactivate'|'reactivate', id: string} | null>(null)
 
   const { data: categoriesData, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.catalog.categories.list({ search, page, size: 20 }),
@@ -68,6 +72,7 @@ export function CategoriasPage() {
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.catalog.categories.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Categoría creada')
       setOpen(false)
     },
@@ -79,6 +84,7 @@ export function CategoriasPage() {
       catalogService.updateCategory(id, { name: data.name, description: data.description || undefined, parentId: data.parentId || undefined }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.catalog.categories.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Categoría actualizada')
       setOpen(false)
     },
@@ -89,9 +95,20 @@ export function CategoriasPage() {
     mutationFn: (id: string) => catalogService.deactivateCategory(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.catalog.categories.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Categoría desactivada')
     },
     onError: () => toast.error('Error al desactivar categoría'),
+  })
+
+  const reactivateMutation = useMutation({
+    mutationFn: (id: string) => catalogService.reactivateCategory(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.catalog.categories.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
+      toast.success('Categoría activada')
+    },
+    onError: () => toast.error('Error al activar categoría'),
   })
 
   const form = useForm<CategoryValues>({
@@ -157,11 +174,11 @@ export function CategoriasPage() {
             <Pencil className="size-4" />
           </Button>
           {c.status === 'ACTIVA' ? (
-            <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Desactivar" onClick={() => deactivateMutation.mutate(c.id)}>
+            <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Desactivar" onClick={() => setConfirmAction({type:'deactivate', id: c.id})}>
               <Ban className="size-4" />
             </Button>
           ) : (
-            <Button variant="ghost" size="icon" className="size-8 text-emerald-600" aria-label="Activar" onClick={() => deactivateMutation.mutate(c.id)}>
+            <Button variant="ghost" size="icon" className="size-8 text-emerald-600" aria-label="Activar" onClick={() => setConfirmAction({type:'reactivate', id: c.id})}>
               <CheckCircle className="size-4" />
             </Button>
           )}
@@ -172,6 +189,7 @@ export function CategoriasPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <SeoHead title="Categorías" description="Clasificación de productos por categorías." />
       <PageHeader
         title="Categorías"
         description="Clasificación de productos"
@@ -274,6 +292,20 @@ export function CategoriasPage() {
           </Form>
         </DialogContent>
       </Dialog>
+      <ConfirmDialog
+        open={!!confirmAction}
+        onOpenChange={(open) => { if (!open) setConfirmAction(null) }}
+        onConfirm={() => {
+          if (confirmAction?.type === 'deactivate') deactivateMutation.mutate(confirmAction.id)
+          else if (confirmAction?.type === 'reactivate') reactivateMutation.mutate(confirmAction.id)
+          setConfirmAction(null)
+        }}
+        title={confirmAction?.type === 'deactivate' ? 'Desactivar Categoría' : 'Reactivar Categoría'}
+        description={confirmAction?.type === 'deactivate' ? '¿Estás seguro de que deseas desactivar esta categoría? Los productos asociados no se verán afectados.' : '¿Estás seguro de que deseas reactivar esta categoría? Volverá a estar disponible para clasificar productos.'}
+        confirmText={confirmAction?.type === 'deactivate' ? 'Desactivar' : 'Reactivar'}
+        variant={confirmAction?.type === 'deactivate' ? 'destructive' : 'default'}
+        isLoading={confirmAction?.type === 'deactivate' ? deactivateMutation.isPending : reactivateMutation.isPending}
+      />
     </div>
   )
 }

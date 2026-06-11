@@ -28,23 +28,41 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { ErrorState } from '@/components/shared/error-state'
+import { SeoHead } from '@/components/shared/seo-head'
 
+const noHTML = (v: string) => !/[<>&"']/.test(v)
 const movementSchema = z.object({
-  productId: z.string().min(1, 'Selecciona un producto'),
+  productId: z.string().min(1, 'Selecciona un producto').refine(noHTML),
   quantity: z.number().min(1, 'La cantidad debe ser mayor a 0'),
-  notes: z.string().optional(),
+  notes: z.string().refine(noHTML).optional(),
 })
 
 const adjustSchema = z.object({
-  productId: z.string().min(1, 'Selecciona un producto'),
+  productId: z.string().min(1, 'Selecciona un producto').refine(noHTML),
   adjustmentType: z.enum(['POSITIVO', 'NEGATIVO']),
   quantity: z.number().min(1, 'La cantidad debe ser mayor a 0'),
-  justification: z.string().min(1, 'La justificación es requerida'),
-  notes: z.string().optional(),
+  justification: z.string().min(1, 'La justificación es requerida').refine(noHTML),
+  notes: z.string().refine(noHTML).optional(),
+})
+
+const initSchema = z.object({
+  productId: z.string().min(1, 'Selecciona un producto').refine(noHTML),
+  initialStock: z.number().min(0, 'Debe ser mayor o igual a 0'),
+  minStock: z.number().min(0, 'Debe ser mayor o igual a 0'),
+  maxStock: z.number().min(0, 'Debe ser mayor o igual a 0'),
+  notes: z.string().refine(noHTML).optional(),
+})
+
+const reverseSchema = z.object({
+  movementId: z.string().min(1, 'ID de movimiento requerido').refine(noHTML),
+  justification: z.string().min(1, 'La justificación es requerida').refine(noHTML),
 })
 
 type MovementValues = z.infer<typeof movementSchema>
 type AdjustValues = z.infer<typeof adjustSchema>
+type InitValues = z.infer<typeof initSchema>
+type ReverseValues = z.infer<typeof reverseSchema>
 
 type MovementType = 'entry' | 'exit' | 'return' | null
 
@@ -52,8 +70,10 @@ export function InventarioPage() {
   const qc = useQueryClient()
   const [movementType, setMovementType] = useState<MovementType>(null)
   const [adjustOpen, setAdjustOpen] = useState(false)
+  const [initOpen, setInitOpen] = useState(false)
+  const [reverseOpen, setReverseOpen] = useState(false)
 
-  const { data: inventoryData, isLoading: invLoading } = useQuery({
+  const { data: inventoryData, isLoading: invLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.inventory.list({ page: 1, size: 200 }),
     queryFn: () => inventoryService.listProducts({ page: 1, size: 200 }),
   })
@@ -63,12 +83,12 @@ export function InventarioPage() {
     queryFn: () => catalogService.listProducts({ page: 1, size: 200 }),
   })
 
-  const { data: alertsData, isLoading: alertsLoading } = useQuery({
+  const { data: alertsData, isLoading: alertsLoading, isError: alertsError, refetch: alertsRefetch } = useQuery({
     queryKey: queryKeys.inventory.alerts.list({ page: 1, size: 200 }),
     queryFn: () => inventoryService.getAlerts({ page: 1, size: 200 }),
   })
 
-  const { data: depletedData } = useQuery({
+  const { data: depletedData, isLoading: depletedLoading, isError: depletedError, refetch: depletedRefetch } = useQuery({
     queryKey: queryKeys.inventory.alerts.depleted({ page: 1, size: 200 }),
     queryFn: () => inventoryService.getDepleted({ page: 1, size: 200 }),
   })
@@ -88,28 +108,62 @@ export function InventarioPage() {
     defaultValues: { productId: '', adjustmentType: 'POSITIVO', quantity: 1, justification: '', notes: '' },
   })
 
+  const initForm = useForm<InitValues>({
+    resolver: zodResolver(initSchema),
+    defaultValues: { productId: '', initialStock: 0, minStock: 0, maxStock: 0, notes: '' },
+  })
+
+  const reverseForm = useForm<ReverseValues>({
+    resolver: zodResolver(reverseSchema),
+    defaultValues: { movementId: '', justification: '' },
+  })
+
   const entryMutation = useMutation({
     mutationFn: (data: MovementValues) => inventoryService.registerEntry(data.productId, { quantity: data.quantity, notes: data.notes || undefined }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.inventory.all }); toast.success('Entrada registrada'); closeMovement() },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.inventory.all }); qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard }); toast.success('Entrada registrada'); closeMovement() },
     onError: () => toast.error('Error al registrar entrada'),
   })
 
   const exitMutation = useMutation({
     mutationFn: (data: MovementValues) => inventoryService.registerExit(data.productId, { quantity: data.quantity, notes: data.notes || undefined }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.inventory.all }); toast.success('Salida registrada'); closeMovement() },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.inventory.all }); qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard }); toast.success('Salida registrada'); closeMovement() },
     onError: () => toast.error('Error al registrar salida'),
   })
 
   const returnMutation = useMutation({
     mutationFn: (data: MovementValues) => inventoryService.registerReturn(data.productId, { quantity: data.quantity, notes: data.notes || undefined }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.inventory.all }); toast.success('Devolución registrada'); closeMovement() },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.inventory.all }); qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard }); toast.success('Devolución registrada'); closeMovement() },
     onError: () => toast.error('Error al registrar devolución'),
   })
 
   const adjustMutation = useMutation({
     mutationFn: (data: AdjustValues) => inventoryService.adjust(data.productId, { adjustmentType: data.adjustmentType, quantity: data.quantity, justification: data.justification, notes: data.notes || undefined }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.inventory.all }); toast.success('Ajuste registrado'); setAdjustOpen(false); adjustForm.reset() },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.inventory.all }); qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard }); toast.success('Ajuste registrado'); setAdjustOpen(false); adjustForm.reset() },
     onError: () => toast.error('Error al registrar ajuste'),
+  })
+
+  const initializeMutation = useMutation({
+    mutationFn: (data: InitValues) => inventoryService.initialize(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.inventory.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
+      toast.success('Inventario inicializado')
+      setInitOpen(false)
+      initForm.reset()
+    },
+    onError: () => toast.error('Error al inicializar inventario'),
+  })
+
+  const reverseMutation = useMutation({
+    mutationFn: ({ movementId, justification }: ReverseValues) => inventoryService.reverseMovement(movementId, justification),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.inventory.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
+      toast.success('Movimiento revertido')
+      setReverseOpen(false)
+      reverseForm.reset()
+    },
+    onError: () => toast.error('Error al revertir movimiento'),
   })
 
   function closeMovement() {
@@ -183,14 +237,25 @@ export function InventarioPage() {
 
   return (
     <div className="flex flex-col gap-6">
+      <SeoHead title="Inventario" description="Control de existencias del inventario." />
       <PageHeader
         title="Inventario"
         description="Control de existencias"
         actions={
-          <Button variant="outline" onClick={() => setAdjustOpen(true)}>
-            <Scale className="mr-2 size-4" />
-            Ajustar Inventario
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setInitOpen(true)} aria-label="Inicializar inventario">
+              <Package className="mr-2 size-4" />
+              Inicializar
+            </Button>
+            <Button variant="outline" onClick={() => setReverseOpen(true)} aria-label="Reversar movimiento">
+              <RotateCcw className="mr-2 size-4" />
+              Reversar
+            </Button>
+            <Button variant="outline" onClick={() => setAdjustOpen(true)}>
+              <Scale className="mr-2 size-4" />
+              Ajustar
+            </Button>
+          </div>
         }
       />
 
@@ -226,12 +291,17 @@ export function InventarioPage() {
             isLoading={invLoading}
             emptyIcon={Package}
             emptyTitle="Inventario vacío"
+            isError={isError}
+            onRetry={() => refetch()}
             emptyDescription="No hay productos registrados en inventario"
             keyExtractor={(i) => i.id}
           />
         </TabsContent>
 
         <TabsContent value="alerts" className="mt-4">
+          {(alertsError || depletedError) ? (
+            <Card><CardContent className="py-12"><ErrorState message="Error al cargar alertas de stock" onRetry={() => { alertsRefetch(); depletedRefetch(); }} /></CardContent></Card>
+          ) : (
           {alerts.length === 0 && depleted.length === 0 ? (
             <Card><CardContent className="py-12 text-center text-muted-foreground">No hay alertas de stock</CardContent></Card>
           ) : (
@@ -249,7 +319,7 @@ export function InventarioPage() {
                 </div>
               )}
             </div>
-          )}
+          )})}
         </TabsContent>
       </Tabs>
 
@@ -321,6 +391,62 @@ export function InventarioPage() {
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => { setAdjustOpen(false); adjustForm.reset() }}>Cancelar</Button>
                 <Button type="submit" disabled={adjustMutation.isPending}>Registrar Ajuste</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={initOpen} onOpenChange={(o) => { if (!o) { setInitOpen(false); initForm.reset() }}}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Inicializar Inventario</DialogTitle><DialogDescription>Configura el inventario inicial de un producto</DialogDescription></DialogHeader>
+          <Form {...initForm}>
+            <form onSubmit={initForm.handleSubmit((data) => initializeMutation.mutate(data))} className="flex flex-col gap-4">
+              <FormField control={initForm.control} name="productId" render={({ field }) => (
+                <FormItem><FormLabel>Producto</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger><SelectValue placeholder="Selecciona un producto" /></SelectTrigger>
+                    <SelectContent>
+                      {products.filter(p => p.status === 'ACTIVO').map((p) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.codigo})</SelectItem>)}
+                    </SelectContent>
+                  </Select><FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={initForm.control} name="initialStock" render={({ field }) => (
+                <FormItem><FormLabel>Stock Inicial</FormLabel><FormControl><Input type="number" min={0} {...field} onChange={(e) => field.onChange(parseInt(e.target.value) || 0)} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={initForm.control} name="minStock" render={({ field }) => (
+                <FormItem><FormLabel>Stock Mínimo</FormLabel><FormControl><Input type="number" min={0} {...field} onChange={(e) => field.onChange(parseInt(e.target.value) || 0)} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={initForm.control} name="maxStock" render={({ field }) => (
+                <FormItem><FormLabel>Stock Máximo</FormLabel><FormControl><Input type="number" min={0} {...field} onChange={(e) => field.onChange(parseInt(e.target.value) || 0)} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={initForm.control} name="notes" render={({ field }) => (
+                <FormItem><FormLabel>Notas</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+              )} />
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => { setInitOpen(false); initForm.reset() }}>Cancelar</Button>
+                <Button type="submit" disabled={initializeMutation.isPending}>Inicializar</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={reverseOpen} onOpenChange={(o) => { if (!o) { setReverseOpen(false); reverseForm.reset() }}}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Reversar Movimiento</DialogTitle><DialogDescription>Ingresa el ID del movimiento y la justificación para revertirlo</DialogDescription></DialogHeader>
+          <Form {...reverseForm}>
+            <form onSubmit={reverseForm.handleSubmit((data) => reverseMutation.mutate(data))} className="flex flex-col gap-4">
+              <FormField control={reverseForm.control} name="movementId" render={({ field }) => (
+                <FormItem><FormLabel>ID del Movimiento</FormLabel><FormControl><Input {...field} placeholder="Ingresa el ID del movimiento" /></FormControl><FormMessage /></FormItem>
+              )} />
+              <FormField control={reverseForm.control} name="justification" render={({ field }) => (
+                <FormItem><FormLabel>Justificación</FormLabel><FormControl><Textarea {...field} placeholder="Motivo de la reversión" /></FormControl><FormMessage /></FormItem>
+              )} />
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => { setReverseOpen(false); reverseForm.reset() }}>Cancelar</Button>
+                <Button type="submit" disabled={reverseMutation.isPending}>{reverseMutation.isPending ? 'Procesando...' : 'Reversar'}</Button>
               </DialogFooter>
             </form>
           </Form>

@@ -13,9 +13,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form'
 import { SeoHead } from '@/components/shared/seo-head'
 
+const noHTML = (v: string) => !/[<>&"']/.test(v)
 const resetSchema = z.object({
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-  confirm: z.string().min(1, 'Confirma tu contraseña'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').refine(noHTML),
+  confirm: z.string().min(1, 'Confirma tu contraseña').refine(noHTML),
 }).refine(d => d.password === d.confirm, {
   message: 'Las contraseñas no coinciden',
   path: ['confirm'],
