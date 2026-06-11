@@ -83,7 +83,6 @@ api.interceptors.response.use(
 
     if (originalRequest.url?.includes('/auth/refresh')) {
       clearAuthTokens()
-      window.location.href = '/login'
       return Promise.reject(error)
     }
 
@@ -104,7 +103,6 @@ api.interceptors.response.use(
     if (!refreshToken) {
       isRefreshing = false
       clearAuthTokens()
-      window.location.href = '/login'
       return Promise.reject(error)
     }
 
@@ -121,7 +119,6 @@ api.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError, null)
       clearAuthTokens()
-      window.location.href = '/login'
       return Promise.reject(refreshError)
     } finally {
       isRefreshing = false

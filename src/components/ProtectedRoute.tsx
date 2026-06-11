@@ -1,5 +1,4 @@
 import { useAuthStore } from '@/stores/auth'
-import { Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 
 interface ProtectedRouteProps {
@@ -22,7 +21,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+    window.location.replace('/login')
+    return null
   }
 
   return children

@@ -79,7 +79,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch {
       clearAuthTokens()
       set({ user: null, isAuthenticated: false, isLoading: false })
-      window.location.href = '/login'
     }
   },
 }))
