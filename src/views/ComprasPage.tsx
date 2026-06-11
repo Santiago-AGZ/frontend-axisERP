@@ -25,6 +25,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { SeoHead } from '@/components/shared/seo-head'
 import { useAuthStore } from '@/stores/auth'
+import { nextPurchaseStatusLabel, statusLabel } from '@/lib/labels'
 
 const orderStatusFlow: Record<string, string> = {
   BORRADOR: 'PENDIENTE',
@@ -171,7 +172,7 @@ export function ComprasPage() {
     },
     {
       header: 'Proveedor',
-      accessor: (p) => <span className="font-medium">{supplierMap.get(p.supplierId) ?? p.supplierId}</span>,
+      accessor: (p) => <span className="font-medium">{supplierMap.get(p.supplierId) ?? <span className="text-muted-foreground">—</span>}</span>,
     },
     {
       header: 'Fecha',
@@ -200,7 +201,7 @@ export function ComprasPage() {
           )}
           {canManageStatus && p.status === 'BORRADOR' && (
             <Button variant="outline" size="sm" onClick={() => statusMutation.mutate({ id: p.id, status: orderStatusFlow[p.status] })}>
-              {orderStatusFlow[p.status]}
+              {nextPurchaseStatusLabel[orderStatusFlow[p.status]] ?? orderStatusFlow[p.status]}
             </Button>
           )}
           {canManageStatus && ['BORRADOR', 'PENDIENTE'].includes(p.status) && (
@@ -299,7 +300,7 @@ export function ComprasPage() {
           {viewPurchase && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">Proveedor:</span> {supplierMap.get(viewPurchase.supplierId) ?? viewPurchase.supplierId}</div>
+                <div><span className="text-muted-foreground">Proveedor:</span> {supplierMap.get(viewPurchase.supplierId) ?? <span className="italic text-muted-foreground">Desconocido</span>}</div>
                 <div><span className="text-muted-foreground">Estado:</span> {viewPurchase.status}</div>
                 <div><span className="text-muted-foreground">Fecha:</span> {new Date(viewPurchase.createdAt).toLocaleString()}</div>
               </div>

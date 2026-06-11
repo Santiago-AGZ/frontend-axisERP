@@ -75,11 +75,6 @@ export const authService = {
     await api.post('/auth/logout', { refreshToken })
   },
 
-  refresh: async (refreshToken: string) => {
-    const response = await api.post<ApiResponse<{ accessToken: string; refreshToken: string; expiresIn: number; tokenType: string }>>('/auth/refresh', { refreshToken })
-    return response.data.data
-  },
-
   getMe: async () => {
     const response = await api.get<ApiResponse<UserProfile>>('/auth/me')
     return response.data.data

@@ -18,6 +18,8 @@ import {
 import { ErrorState } from '@/components/shared/error-state'
 import { SeoHead } from '@/components/shared/seo-head'
 import { useAuthStore } from '@/stores/auth'
+import { formatCurrency } from '@/lib/format'
+import { statusLabel } from '@/lib/labels'
 
 const PIE_COLORS = [
   'oklch(0.596 0.145 163.225)',
@@ -26,10 +28,6 @@ const PIE_COLORS = [
   'oklch(0.627 0.265 303.9)',
   'oklch(0.577 0.245 27.325)',
 ]
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value)
-}
 
 function today() {
   return new Date().toISOString().split('T')[0]
@@ -41,10 +39,8 @@ function thirtyDaysAgo() {
   return d.toISOString().split('T')[0]
 }
 
-const statusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  CONFIRMADA: 'outline',
-  PAGADA: 'default',
-  ANULADA: 'destructive',
+const saleStatusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  CONFIRMADA: 'outline', PAGADA: 'default', ANULADA: 'destructive',
 }
 
 function FrequentCustomersTab() {
@@ -233,7 +229,7 @@ function SalesReportTab() {
                       <span className="text-sm font-medium">{sale.saleNumber}</span>
                       <div className="flex items-center gap-3">
                         <span className="font-semibold">{formatCurrency(sale.total)}</span>
-                        <Badge variant={statusBadge[sale.status] ?? 'outline'}>{sale.status}</Badge>
+                        <Badge variant={saleStatusBadge[sale.status] ?? 'outline'}>{sale.status}</Badge>
                       </div>
                     </div>
                   ))}

@@ -153,6 +153,7 @@ export function VentasPage() {
     onSuccess: (_, id) => {
       qc.invalidateQueries({ queryKey: queryKeys.sales.sales.all })
       qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
+      qc.invalidateQueries({ queryKey: queryKeys.inventory.all })
       const sale = salesData?.data?.find(s => s.id === id)
       if (sale?.customerId) qc.invalidateQueries({ queryKey: queryKeys.sales.customers.history(sale.customerId) })
       toast.success('Venta anulada')

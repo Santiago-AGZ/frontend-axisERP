@@ -31,6 +31,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ErrorState } from '@/components/shared/error-state'
 import { SeoHead } from '@/components/shared/seo-head'
 import { useAuthStore } from '@/stores/auth'
+import { movementLabel, movementBadgeVariant } from '@/lib/labels'
 
 const noHTML = (v: string) => !/[<>&"']/.test(v)
 const movementSchema = z.object({
@@ -245,7 +246,7 @@ export function InventarioPage() {
   ]
 
   const movColumns: Column<MovementResponse>[] = [
-    { header: 'Tipo', accessor: (m) => <Badge variant={m.movementType === 'ENTRADA' ? 'default' : m.movementType === 'SALIDA' ? 'destructive' : 'secondary'}>{m.movementType}</Badge> },
+    { header: 'Tipo', accessor: (m) => <Badge variant={movementBadgeVariant[m.movementType] ?? 'secondary'}>{movementLabel[m.movementType] ?? m.movementType}</Badge> },
     { header: 'Cantidad', accessor: (m) => <span className="font-mono">{m.quantity}</span> },
     { header: 'Stock Anterior', accessor: (m) => m.previousStock.toString() },
     { header: 'Stock Nuevo', accessor: (m) => <span className="font-medium">{m.newStock}</span> },
@@ -294,19 +295,19 @@ export function InventarioPage() {
       <div className="grid gap-4 sm:grid-cols-4">
         <Card><CardContent className="flex items-center gap-4 pt-6">
           <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10"><Package className="size-5 text-primary" /></div>
-          <div><p className="text-sm text-muted-foreground">Total Productos</p><p className="text-2xl font-bold">{inventory.length}</p></div>
+          <div><p className="text-sm text-muted-foreground">Total Productos</p><p className="text-2xl font-bold">{inventoryData?.pagination?.totalRecords ?? inventory.length}</p></div>
         </CardContent></Card>
         <Card><CardContent className="flex items-center gap-4 pt-6">
           <div className="flex size-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/20"><AlertTriangle className="size-5 text-amber-600" /></div>
-          <div><p className="text-sm text-muted-foreground">Stock Bajo</p><p className="text-2xl font-bold text-amber-600">{alerts.length}</p></div>
+          <div><p className="text-sm text-muted-foreground">Stock Bajo</p><p className="text-2xl font-bold text-amber-600">{alertsData?.pagination?.totalRecords ?? alerts.length}</p></div>
         </CardContent></Card>
         <Card><CardContent className="flex items-center gap-4 pt-6">
           <div className="flex size-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/20"><ArrowUp className="size-5 text-red-600" /></div>
-          <div><p className="text-sm text-muted-foreground">Agotados</p><p className="text-2xl font-bold text-destructive">{depleted.length}</p></div>
+          <div><p className="text-sm text-muted-foreground">Agotados</p><p className="text-2xl font-bold text-destructive">{depletedData?.pagination?.totalRecords ?? depleted.length}</p></div>
         </CardContent></Card>
         <Card><CardContent className="flex items-center gap-4 pt-6">
           <div className="flex size-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/20"><ClipboardList className="size-5 text-blue-600" /></div>
-          <div><p className="text-sm text-muted-foreground">Stock Normal</p><p className="text-2xl font-bold">{inventory.filter(i => !i.lowStock && !i.depleted).length}</p></div>
+          <div><p className="text-sm text-muted-foreground">Stock Normal</p><p className="text-2xl font-bold">{inventoryData?.pagination?.totalRecords != null && alertsData?.pagination?.totalRecords != null && depletedData?.pagination?.totalRecords != null ? inventoryData.pagination.totalRecords - alertsData.pagination.totalRecords - depletedData.pagination.totalRecords : inventory.filter(i => !i.lowStock && !i.depleted).length}</p></div>
         </CardContent></Card>
       </div>
 

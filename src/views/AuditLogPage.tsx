@@ -7,6 +7,7 @@ import { DataTable, type Column } from '@/components/shared/data-table'
 import { SeoHead } from '@/components/shared/seo-head'
 import { Badge } from '@/components/ui/badge'
 import { ClipboardList } from 'lucide-react'
+import { actionLabel, entityLabel } from '@/lib/labels'
 
 interface AuditEntry {
   id: string
@@ -47,19 +48,19 @@ export default function AuditLogPage() {
 
   const columns: Column<AuditEntry>[] = [
     { header: 'Fecha', accessor: (l) => new Date(l.timestamp).toLocaleString() },
-    { header: 'Usuario', accessor: (l) => l.userName || l.userId || '—' },
+    { header: 'Usuario', accessor: (l) => l.userName || (l.userId ? `Usuario ${l.userId.slice(0, 8)}...` : <span className="text-muted-foreground">—</span>) },
     {
-      header: 'Acción',
-      accessor: (l) => <Badge variant={actionBadge[l.action] ?? 'outline'}>{l.action}</Badge>,
+      header: 'Accion',
+      accessor: (l) => <Badge variant={actionBadge[l.action] ?? 'outline'}>{actionLabel[l.action] ?? l.action}</Badge>,
     },
-    { header: 'Entidad', accessor: (l) => l.entityType },
-    { header: 'ID Entidad', accessor: (l) => l.entityId ? <span className="font-mono text-xs">{l.entityId.slice(0, 8)}</span> : '—' },
+    { header: 'Entidad', accessor: (l) => entityLabel[l.entityType] ?? l.entityType },
+    { header: 'ID Entidad', accessor: (l) => l.entityId ? <span className="font-mono text-xs">{l.entityId.slice(0, 8)}</span> : <span className="text-muted-foreground">—</span> },
   ]
 
   return (
     <div className="flex flex-col gap-6">
-      <SeoHead title="Auditoría" description="Registro de auditoría del sistema AxisERP." />
-      <PageHeader title="Auditoría" description="Historial de acciones críticas del sistema" />
+      <SeoHead title="Auditoria" description="Registro de auditoria del sistema AxisERP." />
+      <PageHeader title="Auditoria" description="Historial de acciones criticas del sistema" />
 
       <DataTable
         columns={columns}
@@ -70,8 +71,8 @@ export default function AuditLogPage() {
         pagination={pagination ?? undefined}
         onPageChange={setPage}
         emptyIcon={ClipboardList}
-        emptyTitle="No hay registros de auditoría"
-        emptyDescription="Los registros aparecerán cuando se realicen acciones críticas en el sistema"
+        emptyTitle="No hay registros de auditoria"
+        emptyDescription="Los registros apareceran cuando se realicen acciones criticas en el sistema"
         keyExtractor={(l) => l.id}
       />
     </div>
