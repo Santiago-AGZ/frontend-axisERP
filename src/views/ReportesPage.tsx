@@ -17,6 +17,7 @@ import {
 } from 'recharts'
 import { ErrorState } from '@/components/shared/error-state'
 import { SeoHead } from '@/components/shared/seo-head'
+import { useAuthStore } from '@/stores/auth'
 
 const PIE_COLORS = [
   'oklch(0.596 0.145 163.225)',
@@ -371,23 +372,26 @@ function TopProductsTab() {
 }
 
 export function ReportesPage() {
+  const { user } = useAuthStore()
+  const isAdmin = user?.role === 'ADMIN'
+
   return (
     <div className="flex flex-col gap-6">
       <SeoHead title="Reportes" description="Reportes y estadísticas del sistema AxisERP." />
-      <PageHeader title="Reportes" description="Análisis y estadísticas del negocio" />
+      <PageHeader title="Reportes" description="Analisis y estadisticas del negocio" />
 
-      <Tabs defaultValue="sales" className="space-y-6">
+      <Tabs defaultValue={isAdmin ? 'sales' : 'inventory'} className="space-y-6">
         <TabsList>
-          <TabsTrigger value="sales" className="gap-2"><BarChart3 className="size-4" />Ventas</TabsTrigger>
+          {isAdmin && <TabsTrigger value="sales" className="gap-2"><BarChart3 className="size-4" />Ventas</TabsTrigger>}
           <TabsTrigger value="inventory" className="gap-2"><Package className="size-4" />Inventario</TabsTrigger>
-          <TabsTrigger value="products" className="gap-2"><TrendingUp className="size-4" />Top Productos</TabsTrigger>
-          <TabsTrigger value="customers" className="gap-2"><Users className="size-4" />Clientes</TabsTrigger>
+          {isAdmin && <TabsTrigger value="products" className="gap-2"><TrendingUp className="size-4" />Top Productos</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="customers" className="gap-2"><Users className="size-4" />Clientes</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="sales"><SalesReportTab /></TabsContent>
+        {isAdmin && <TabsContent value="sales"><SalesReportTab /></TabsContent>}
         <TabsContent value="inventory"><InventoryReportTab /></TabsContent>
-        <TabsContent value="products"><TopProductsTab /></TabsContent>
-        <TabsContent value="customers"><FrequentCustomersTab /></TabsContent>
+        {isAdmin && <TabsContent value="products"><TopProductsTab /></TabsContent>}
+        {isAdmin && <TabsContent value="customers"><FrequentCustomersTab /></TabsContent>}
       </Tabs>
     </div>
   )

@@ -77,11 +77,6 @@ export const inventoryService = {
     return { data: response.data.data, pagination: response.data.pagination }
   },
 
-  getProductInventory: async (productId: string) => {
-    const response = await api.get<ApiResponse<InventoryResponse>>(`/inventory/products/${productId}`)
-    return response.data.data
-  },
-
   getAlerts: async (params?: { page?: number; size?: number }) => {
     const response = await api.get<ApiResponse<ProductInventoryResponse[]> & { pagination?: PaginationMeta }>('/inventory/alerts', { params })
     return { data: response.data.data, pagination: response.data.pagination }

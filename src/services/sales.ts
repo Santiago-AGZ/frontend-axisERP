@@ -75,33 +75,10 @@ export interface SaleItemResponse {
   subtotal: number
 }
 
-export interface InvoiceResponse {
-  id: string
-  saleId: string
-  invoiceNumber: number
-  customerSnapshot: string
-  itemsSnapshot: string
-  subtotal: number
-  discount: number
-  tax: number
-  total: number
-  issuedAt: string
-}
-
 export const salesService = {
   listCustomers: async (params?: { search?: string; includeInactive?: boolean; page?: number; size?: number }) => {
     const response = await api.get<ApiResponse<CustomerResponse[]> & { pagination?: PaginationMeta }>('/customers', { params })
     return { data: response.data.data, pagination: response.data.pagination }
-  },
-
-  getCustomer: async (codigo: string) => {
-    const response = await api.get<ApiResponse<CustomerResponse>>(`/customers/${codigo}`)
-    return response.data.data
-  },
-
-  getCustomerByCodigo: async (codigo: string) => {
-    const response = await api.get<ApiResponse<CustomerResponse>>(`/customers/${codigo}`)
-    return response.data.data
   },
 
   createCustomer: async (data: CustomerRequest) => {
@@ -134,11 +111,6 @@ export const salesService = {
     return { data: response.data.data, pagination: response.data.pagination }
   },
 
-  getSale: async (id: string) => {
-    const response = await api.get<ApiResponse<SaleResponse>>(`/sales/${id}`)
-    return response.data.data
-  },
-
   createSale: async (data: CreateSaleRequest) => {
     const response = await api.post<ApiResponse<SaleResponse>>('/sales', data)
     return response.data.data
@@ -156,16 +128,6 @@ export const salesService = {
 
   voidSale: async (id: string) => {
     const response = await api.patch<ApiResponse<SaleResponse>>(`/sales/${id}/void`)
-    return response.data.data
-  },
-
-  getInvoice: async (id: string) => {
-    const response = await api.get<ApiResponse<InvoiceResponse>>(`/invoices/${id}`)
-    return response.data.data
-  },
-
-  getInvoiceBySale: async (saleId: string) => {
-    const response = await api.get<ApiResponse<InvoiceResponse>>(`/invoices/by-sale/${saleId}`)
     return response.data.data
   },
 

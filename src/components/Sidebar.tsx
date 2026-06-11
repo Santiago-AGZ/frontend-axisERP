@@ -17,7 +17,7 @@ const allNavItems = [
   { icon: Warehouse, label: 'Inventario', to: '/inventario', roles: ['ADMIN', 'INVENTARIO'] },
   { icon: Truck, label: 'Proveedores', to: '/proveedores', roles: ['ADMIN'] },
   { icon: ScrollText, label: 'Compras', to: '/compras', roles: ['ADMIN', 'INVENTARIO'] },
-  { icon: BarChart3, label: 'Reportes', to: '/reportes', roles: ['ADMIN'] },
+  { icon: BarChart3, label: 'Reportes', to: '/reportes', roles: ['ADMIN', 'INVENTARIO'] },
   { icon: ClipboardList, label: 'Auditoria', to: '/auditoria', roles: ['ADMIN'] },
 ]
 

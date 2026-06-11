@@ -92,7 +92,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'reportes',
-        element: <LazyPage><RoleGuard allowedRoles={['ADMIN']}><ReportesPage /></RoleGuard></LazyPage>,
+        element: <LazyPage><RoleGuard allowedRoles={['ADMIN', 'INVENTARIO']}><ReportesPage /></RoleGuard></LazyPage>,
       },
       {
         path: 'compras',

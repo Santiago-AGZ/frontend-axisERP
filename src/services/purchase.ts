@@ -85,11 +85,6 @@ export const purchaseService = {
     return { data: response.data.data, pagination: response.data.pagination }
   },
 
-  getSupplier: async (id: string) => {
-    const response = await api.get<ApiResponse<SupplierResponse>>(`/suppliers/${id}`)
-    return response.data.data
-  },
-
   createSupplier: async (data: CreateSupplierRequest) => {
     const response = await api.post<ApiResponse<SupplierResponse>>('/suppliers', data)
     return response.data.data
@@ -113,11 +108,6 @@ export const purchaseService = {
   listPurchases: async (params?: { search?: string; status?: string; page?: number; size?: number }) => {
     const response = await api.get<ApiResponse<PurchaseResponse[]> & { pagination?: PaginationMeta }>('/purchases', { params })
     return { data: response.data.data, pagination: response.data.pagination }
-  },
-
-  getPurchase: async (id: string) => {
-    const response = await api.get<ApiResponse<PurchaseResponse>>(`/purchases/${id}`)
-    return response.data.data
   },
 
   createPurchase: async (data: CreatePurchaseRequest) => {

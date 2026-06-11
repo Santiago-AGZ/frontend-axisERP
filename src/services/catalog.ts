@@ -60,11 +60,6 @@ export const catalogService = {
     return { data: response.data.data, pagination: response.data.pagination }
   },
 
-  getProduct: async (id: string) => {
-    const response = await api.get<ApiResponse<ProductResponse>>(`/productos/${id}`)
-    return response.data.data
-  },
-
   createProduct: async (data: ProductRequest) => {
     const response = await api.post<ApiResponse<ProductResponse>>('/productos', data)
     return response.data.data
@@ -88,11 +83,6 @@ export const catalogService = {
   listCategories: async (params?: { search?: string; includeInactive?: boolean; page?: number; size?: number }) => {
     const response = await api.get<ApiResponse<CategoryResponse[]> & { pagination?: PaginationMeta }>('/categorias', { params })
     return { data: response.data.data, pagination: response.data.pagination }
-  },
-
-  getCategory: async (id: string) => {
-    const response = await api.get<ApiResponse<CategoryResponse>>(`/categorias/${id}`)
-    return response.data.data
   },
 
   createCategory: async (data: CategoryRequest) => {
