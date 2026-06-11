@@ -1,6 +1,7 @@
-import { Suspense } from 'react'
-import { createBrowserRouter } from 'react-router-dom'
+import { Suspense, useEffect } from 'react'
+import { createBrowserRouter, useNavigate } from 'react-router-dom'
 import { AppLayout } from '@/components/AppLayout'
+import { useAuthStore } from '@/stores/auth'
 import { LoginPage } from '@/views/LoginPage'
 import { ResetPasswordPage } from '@/views/ResetPasswordPage'
 import { DashboardPage } from '@/views/DashboardPage'
@@ -27,6 +28,36 @@ function LazyPage({ children }: { children: React.ReactNode }) {
   )
 }
 
+function HomeRedirect() {
+  const navigate = useNavigate()
+  const { user, isAuthenticated, isLoading } = useAuthStore()
+
+  useEffect(() => {
+    if (isLoading) return
+    if (!isAuthenticated) {
+      navigate('/login', { replace: true })
+      return
+    }
+    const role = user?.role
+    if (role === 'ADMIN') {
+      // stay on dashboard (rendered by router)
+    } else if (role === 'VENDEDOR') {
+      navigate('/ventas', { replace: true })
+    } else if (role === 'INVENTARIO') {
+      navigate('/inventario', { replace: true })
+    }
+  }, [isAuthenticated, isLoading, navigate, user?.role])
+
+  if (isLoading) {
+    return <div className="flex h-screen items-center justify-center"><div className="size-8 animate-spin rounded-full border-4 border-primary border-t-transparent" /></div>
+  }
+
+  const role = user?.role
+  if (role === 'VENDEDOR' || role === 'INVENTARIO') return null // waiting for redirect
+
+  return <DashboardPage />
+}
+
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/reset-password', element: <ResetPasswordPage /> },
@@ -38,9 +69,15 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <DashboardPage /> },
-      { path: 'clientes', element: <ClientesPage /> },
-      { path: 'productos', element: <ProductosPage /> },
+      { index: true, element: <HomeRedirect /> },
+      {
+        path: 'clientes',
+        element: <RoleGuard allowedRoles={['ADMIN', 'VENDEDOR']}><ClientesPage /></RoleGuard>,
+      },
+      {
+        path: 'productos',
+        element: <RoleGuard allowedRoles={['ADMIN', 'INVENTARIO', 'VENDEDOR']}><ProductosPage /></RoleGuard>,
+      },
       {
         path: 'categorias',
         element: <RoleGuard allowedRoles={['ADMIN', 'INVENTARIO']}><CategoriasPage /></RoleGuard>,

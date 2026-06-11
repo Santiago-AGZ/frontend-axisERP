@@ -7,6 +7,7 @@ import { Search, Plus, Pencil, Ban, CheckCircle, Package } from 'lucide-react'
 import { toast } from 'sonner'
 import { catalogService } from '@/services/catalog'
 import { queryKeys } from '@/lib/query-keys'
+import { useAuthStore } from '@/stores/auth'
 import { PageHeader } from '@/components/shared/page-header'
 import { DataTable, type Column } from '@/components/shared/data-table'
 import { Button } from '@/components/ui/button'
@@ -50,6 +51,8 @@ interface ProductItem {
 
 export function ProductosPage() {
   const qc = useQueryClient()
+  const { user } = useAuthStore()
+  const canEdit = user?.role === 'ADMIN' || user?.role === 'INVENTARIO'
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [open, setOpen] = useState(false)
@@ -181,18 +184,22 @@ export function ProductosPage() {
       className: 'text-right',
       accessor: (p) => (
         <div className="flex justify-end gap-1">
-          <Button variant="ghost" size="icon" className="size-8" aria-label="Editar" onClick={() => handleEdit(p)}>
-            <Pencil className="size-4" />
-          </Button>
-          {p.status === 'ACTIVO' && (
-            <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Desactivar" onClick={() => setConfirmAction({type:'deactivate', id: p.id})}>
-              <Ban className="size-4" />
-            </Button>
-          )}
-          {p.status === 'INACTIVO' && (
-            <Button variant="ghost" size="icon" className="size-8 text-emerald-600" aria-label="Activar producto" onClick={() => setConfirmAction({type:'reactivate', id: p.id})}>
-              <CheckCircle className="size-4" />
-            </Button>
+          {canEdit && (
+            <>
+              <Button variant="ghost" size="icon" className="size-8" aria-label="Editar" onClick={() => handleEdit(p)}>
+                <Pencil className="size-4" />
+              </Button>
+              {p.status === 'ACTIVO' && (
+                <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Desactivar" onClick={() => setConfirmAction({type:'deactivate', id: p.id})}>
+                  <Ban className="size-4" />
+                </Button>
+              )}
+              {(p.status === 'INACTIVO') && (
+                <Button variant="ghost" size="icon" className="size-8 text-emerald-600" aria-label="Reactivar" onClick={() => setConfirmAction({type:'reactivate', id: p.id})}>
+                  <CheckCircle className="size-4" />
+                </Button>
+              )}
+            </>
           )}
         </div>
       ),
@@ -206,10 +213,12 @@ export function ProductosPage() {
         title="Productos"
         description="Catálogo de productos"
         actions={
-          <Button onClick={handleCreate}>
-            <Plus className="mr-2 size-4" />
-            Nuevo Producto
-          </Button>
+          canEdit ? (
+            <Button onClick={handleCreate}>
+              <Plus className="mr-2 size-4" />
+              Nuevo Producto
+            </Button>
+          ) : undefined
         }
       />
 
