@@ -301,8 +301,7 @@ export function InventarioPage() {
         <TabsContent value="alerts" className="mt-4">
           {(alertsError || depletedError) ? (
             <Card><CardContent className="py-12"><ErrorState message="Error al cargar alertas de stock" onRetry={() => { alertsRefetch(); depletedRefetch(); }} /></CardContent></Card>
-          ) : (
-          {alerts.length === 0 && depleted.length === 0 ? (
+          ) : alerts.length === 0 && depleted.length === 0 ? (
             <Card><CardContent className="py-12 text-center text-muted-foreground">No hay alertas de stock</CardContent></Card>
           ) : (
             <div className="space-y-6">
@@ -319,7 +318,7 @@ export function InventarioPage() {
                 </div>
               )}
             </div>
-          )})}
+          )}
         </TabsContent>
       </Tabs>
 
