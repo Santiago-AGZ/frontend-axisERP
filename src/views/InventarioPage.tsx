@@ -30,6 +30,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { ErrorState } from '@/components/shared/error-state'
 import { SeoHead } from '@/components/shared/seo-head'
+import { useAuthStore } from '@/stores/auth'
 
 const noHTML = (v: string) => !/[<>&"']/.test(v)
 const movementSchema = z.object({
@@ -68,6 +69,8 @@ type MovementType = 'entry' | 'exit' | 'return' | null
 
 export function InventarioPage() {
   const qc = useQueryClient()
+  const { user } = useAuthStore()
+  const canReverse = user?.role === 'ADMIN'
   const [movementType, setMovementType] = useState<MovementType>(null)
   const [adjustOpen, setAdjustOpen] = useState(false)
   const [initOpen, setInitOpen] = useState(false)
@@ -251,9 +254,11 @@ export function InventarioPage() {
     {
       header: '', className: 'text-right',
       accessor: (m) => (
+        canReverse ? (
         <Button variant="ghost" size="icon" className="size-8" aria-label="Revertir" onClick={() => { reverseForm.setValue('movementId', m.id); reverseForm.setValue('justification', ''); setReverseOpen(true) }}>
           <RotateCcw className="size-4" />
         </Button>
+        ) : null
       ),
     },
   ]
@@ -272,10 +277,12 @@ export function InventarioPage() {
               <Package className="mr-2 size-4" />
               Inicializar
             </Button>
+            {canReverse && (
             <Button variant="outline" onClick={() => setReverseOpen(true)} aria-label="Reversar movimiento">
               <RotateCcw className="mr-2 size-4" />
               Reversar
             </Button>
+            )}
             <Button variant="outline" onClick={() => setAdjustOpen(true)}>
               <Scale className="mr-2 size-4" />
               Ajustar

@@ -23,6 +23,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { SeoHead } from '@/components/shared/seo-head'
+import { useAuthStore } from '@/stores/auth'
 
 const noHTML = (v: string) => !/[<>&"']/.test(v)
 const customerSchema = z.object({
@@ -39,6 +40,8 @@ type CustomerValues = z.infer<typeof customerSchema>
 
 export function ClientesPage() {
   const qc = useQueryClient()
+  const { user } = useAuthStore()
+  const canToggleStatus = user?.role === 'ADMIN'
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [open, setOpen] = useState(false)
@@ -181,12 +184,12 @@ export function ClientesPage() {
           <Button variant="ghost" size="icon" className="size-8" aria-label="Editar" onClick={() => handleEdit(c)}>
             <Pencil className="size-4" />
           </Button>
-          {c.status === 'ACTIVO' && (
+          {canToggleStatus && c.status === 'ACTIVO' && (
             <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Desactivar" onClick={() => setConfirmAction({type:'deactivate', id: c.id})}>
               <Ban className="size-4" />
             </Button>
           )}
-          {c.status === 'INACTIVO' && (
+          {canToggleStatus && c.status === 'INACTIVO' && (
             <Button variant="ghost" size="icon" className="size-8 text-emerald-600" aria-label="Activar cliente" onClick={() => setConfirmAction({type:'reactivate', id: c.id})}>
               <CheckCircle className="size-4" />
             </Button>

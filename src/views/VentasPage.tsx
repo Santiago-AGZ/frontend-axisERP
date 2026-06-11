@@ -203,7 +203,7 @@ export function VentasPage() {
               <CreditCard className="mr-1 size-3" />Cobrar
             </Button>
           )}
-          {s.status !== 'ANULADA' && s.status !== 'PAGADA' && (
+          {isAdmin && s.status !== 'ANULADA' && s.status !== 'PAGADA' && (
             <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Anular venta" onClick={() => { setVoidingId(s.id); setVoidOpen(true) }}>
               <Ban className="size-4" />
             </Button>
