@@ -59,24 +59,27 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   initialize: async () => {
     const token = getStoredToken()
-    if (token) {
-      try {
-        const me = await authService.getMe()
-        set({
-          user: {
-            id: me.id,
-            email: me.email,
-            name: me.name,
-            role: me.role,
-            status: me.status,
-          },
-          isAuthenticated: true,
-        })
-      } catch {
-        clearAuthTokens()
-        set({ user: null, isAuthenticated: false })
-      }
+    if (!token) {
+      set({ user: null, isAuthenticated: false, isLoading: false })
+      return
     }
-    set({ isLoading: false })
+    try {
+      const me = await authService.getMe()
+      set({
+        user: {
+          id: me.id,
+          email: me.email,
+          name: me.name,
+          role: me.role,
+          status: me.status,
+        },
+        isAuthenticated: true,
+        isLoading: false,
+      })
+    } catch {
+      clearAuthTokens()
+      set({ user: null, isAuthenticated: false, isLoading: false })
+      window.location.href = '/login'
+    }
   },
 }))
