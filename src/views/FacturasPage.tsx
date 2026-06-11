@@ -127,10 +127,8 @@ export function FacturasPage() {
           </Button>
           {s.status !== 'ANULADA' && s.status !== 'BORRADOR' && (
             <DropdownMenu>
-              <DropdownMenuTrigger>
-                <Button variant="ghost" size="icon" className="size-8" aria-label="Descargar" disabled={loadingDownload === s.id}>
-                  <Download className="size-4" />
-                </Button>
+              <DropdownMenuTrigger className="inline-flex size-8 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground" aria-label="Descargar" disabled={loadingDownload === s.id}>
+                <Download className="size-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleDownloadPdf(s.id)}>

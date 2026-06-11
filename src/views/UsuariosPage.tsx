@@ -348,12 +348,10 @@ export function UsuariosPage() {
               deleteMutation.mutate({ id: confirmAction.userId, currentPassword: data.password })
             }
           })} className="flex flex-col gap-4">
-            <FormItem>
-              <FormLabel>Tu contraseña</FormLabel>
-              <FormControl>
-                <Input type="password" {...confirmForm.register('password', { required: true })} />
-              </FormControl>
-            </FormItem>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Tu contraseña</label>
+              <Input type="password" {...confirmForm.register('password', { required: true })} />
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setConfirmAction(null)}>Cancelar</Button>
               <Button type="submit" variant="destructive" disabled={deactivateMutation.isPending || deleteMutation.isPending}>

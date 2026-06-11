@@ -82,6 +82,8 @@ export function ComprasPage() {
 
   const suppliers = suppliersData?.data ?? []
   const products = productsData?.data ?? []
+  const supplierMap = new Map(suppliers.map((s) => [s.id, s.name]))
+  const productMap = new Map(products.map((p) => [p.id, p.name]))
 
   const form = useForm<CreatePurchaseValues>({
     resolver: zodResolver(createPurchaseSchema),
@@ -166,7 +168,7 @@ export function ComprasPage() {
     },
     {
       header: 'Proveedor',
-      accessor: (p) => <span className="font-medium">{p.supplierId}</span>,
+      accessor: (p) => <span className="font-medium">{supplierMap.get(p.supplierId) ?? p.supplierId}</span>,
     },
     {
       header: 'Fecha',
