@@ -8,7 +8,7 @@ import {
   RotateCcw, Scale,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { inventoryService, type ProductInventoryResponse } from '@/services/inventory'
+import { inventoryService, type ProductInventoryResponse, type MovementResponse } from '@/services/inventory'
 import { catalogService } from '@/services/catalog'
 import { queryKeys } from '@/lib/query-keys'
 import { PageHeader } from '@/components/shared/page-header'
@@ -72,6 +72,7 @@ export function InventarioPage() {
   const [adjustOpen, setAdjustOpen] = useState(false)
   const [initOpen, setInitOpen] = useState(false)
   const [reverseOpen, setReverseOpen] = useState(false)
+  const [selectedProductId, setSelectedProductId] = useState('')
 
   const { data: inventoryData, isLoading: invLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.inventory.list({ page: 1, size: 200 }),
@@ -93,9 +94,16 @@ export function InventarioPage() {
     queryFn: () => inventoryService.getDepleted({ page: 1, size: 200 }),
   })
 
+  const { data: movementsData, isLoading: movsLoading } = useQuery({
+    queryKey: queryKeys.inventory.movements.list(selectedProductId, { page: 1, size: 100 }),
+    queryFn: () => inventoryService.getMovements(selectedProductId, { page: 1, size: 100 }),
+    enabled: !!selectedProductId,
+  })
+
   const inventory = inventoryData?.data ?? []
   const alerts = alertsData?.data ?? []
   const depleted = depletedData?.data ?? []
+  const movements = movementsData?.data ?? []
   const products = productsData?.data ?? []
 
   const movementForm = useForm<MovementValues>({
@@ -233,6 +241,23 @@ export function InventarioPage() {
     },
   ]
 
+  const movColumns: Column<MovementResponse>[] = [
+    { header: 'Tipo', accessor: (m) => <Badge variant={m.movementType === 'ENTRADA' ? 'default' : m.movementType === 'SALIDA' ? 'destructive' : 'secondary'}>{m.movementType}</Badge> },
+    { header: 'Cantidad', accessor: (m) => <span className="font-mono">{m.quantity}</span> },
+    { header: 'Stock Anterior', accessor: (m) => m.previousStock.toString() },
+    { header: 'Stock Nuevo', accessor: (m) => <span className="font-medium">{m.newStock}</span> },
+    { header: 'Fecha', accessor: (m) => new Date(m.createdAt).toLocaleString() },
+    { header: 'Notas', accessor: (m) => <span className="text-sm text-muted-foreground max-w-40 truncate block">{m.notes ?? '—'}</span> },
+    {
+      header: '', className: 'text-right',
+      accessor: (m) => (
+        <Button variant="ghost" size="icon" className="size-8" aria-label="Revertir" onClick={() => { reverseForm.setValue('movementId', m.id); reverseForm.setValue('justification', ''); setReverseOpen(true) }}>
+          <RotateCcw className="size-4" />
+        </Button>
+      ),
+    },
+  ]
+
   const isPending = entryMutation.isPending || exitMutation.isPending || returnMutation.isPending
 
   return (
@@ -282,6 +307,7 @@ export function InventarioPage() {
         <TabsList>
           <TabsTrigger value="inventory">Inventario</TabsTrigger>
           <TabsTrigger value="alerts">Alertas {alerts.length > 0 && `(${alerts.length})`}</TabsTrigger>
+          <TabsTrigger value="movements">Movimientos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="inventory" className="mt-4">
@@ -318,6 +344,32 @@ export function InventarioPage() {
                 </div>
               )}
             </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="movements" className="mt-4">
+          <div className="mb-4">
+            <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+              <SelectTrigger className="w-72"><SelectValue placeholder="Selecciona un producto para ver sus movimientos" /></SelectTrigger>
+              <SelectContent>
+                {products.filter(p => p.status === 'ACTIVO').map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name} ({p.codigo})</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {selectedProductId ? (
+            <DataTable
+              columns={movColumns}
+              data={movements}
+              isLoading={movsLoading}
+              emptyIcon={ClipboardList}
+              emptyTitle="Sin movimientos"
+              emptyDescription="Este producto no tiene movimientos registrados"
+              keyExtractor={(m) => m.id}
+            />
+          ) : (
+            <Card><CardContent className="py-12 text-center text-muted-foreground">Selecciona un producto para ver sus movimientos</CardContent></Card>
           )}
         </TabsContent>
       </Tabs>
