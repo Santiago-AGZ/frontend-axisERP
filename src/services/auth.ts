@@ -123,7 +123,7 @@ export const authService = {
   },
 
   deactivateUser: async (id: string, currentPassword: string) => {
-    const response = await api.patch<ApiResponse<UserResponse>>(`/usuarios/${id}/desactivar`, null, { params: { currentPassword } })
+    const response = await api.patch<ApiResponse<UserResponse>>(`/usuarios/${id}/desactivar`, { currentPassword })
     return response.data.data
   },
 
@@ -133,7 +133,7 @@ export const authService = {
   },
 
   deleteUser: async (id: string, currentPassword: string) => {
-    const response = await api.delete<ApiResponse<UserResponse>>(`/usuarios/${id}`, { params: { currentPassword } })
+    const response = await api.delete<ApiResponse<UserResponse>>(`/usuarios/${id}`, { data: { currentPassword } })
     return response.data.data
   },
 

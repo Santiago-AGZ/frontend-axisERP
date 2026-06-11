@@ -65,7 +65,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'proveedores',
-        element: <RoleGuard allowedRoles={['ADMIN', 'INVENTARIO']}><ProveedoresPage /></RoleGuard>,
+        element: <RoleGuard allowedRoles={['ADMIN']}><ProveedoresPage /></RoleGuard>,
       },
       {
         path: 'facturas',

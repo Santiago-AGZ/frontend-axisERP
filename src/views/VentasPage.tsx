@@ -102,9 +102,10 @@ export function VentasPage() {
       discount: data.discount || undefined,
       notes: data.notes || undefined,
     }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: queryKeys.sales.sales.all })
       qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
+      qc.invalidateQueries({ queryKey: queryKeys.sales.customers.history(variables.customerId) })
       toast.success('Venta creada')
       setOpen(false)
       form.reset()
@@ -117,10 +118,12 @@ export function VentasPage() {
 
   const confirmMutation = useMutation({
     mutationFn: (id: string) => salesService.confirmSale(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       qc.invalidateQueries({ queryKey: queryKeys.sales.sales.all })
       qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       qc.invalidateQueries({ queryKey: queryKeys.inventory.all })
+      const sale = salesData?.data?.find(s => s.id === id)
+      if (sale?.customerId) qc.invalidateQueries({ queryKey: queryKeys.sales.customers.history(sale.customerId) })
       toast.success('Venta confirmada')
     },
     onError: (err) => {
@@ -131,10 +134,12 @@ export function VentasPage() {
 
   const payMutation = useMutation({
     mutationFn: (id: string) => salesService.paySale(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       qc.invalidateQueries({ queryKey: queryKeys.sales.sales.all })
       qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       qc.invalidateQueries({ queryKey: queryKeys.inventory.all })
+      const sale = salesData?.data?.find(s => s.id === id)
+      if (sale?.customerId) qc.invalidateQueries({ queryKey: queryKeys.sales.customers.history(sale.customerId) })
       toast.success('Pago registrado')
     },
     onError: (err) => {
@@ -145,9 +150,11 @@ export function VentasPage() {
 
   const voidMutation = useMutation({
     mutationFn: (id: string) => salesService.voidSale(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       qc.invalidateQueries({ queryKey: queryKeys.sales.sales.all })
       qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
+      const sale = salesData?.data?.find(s => s.id === id)
+      if (sale?.customerId) qc.invalidateQueries({ queryKey: queryKeys.sales.customers.history(sale.customerId) })
       toast.success('Venta anulada')
       setVoidOpen(false)
       setVoidingId(null)

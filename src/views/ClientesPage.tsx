@@ -54,6 +54,7 @@ export function ClientesPage() {
     mutationFn: (data: CustomerValues) => salesService.createCustomer(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.sales.customers.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Cliente creado')
       setOpen(false)
     },
@@ -65,6 +66,7 @@ export function ClientesPage() {
       salesService.updateCustomer(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.sales.customers.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Cliente actualizado')
       setOpen(false)
     },
@@ -75,6 +77,7 @@ export function ClientesPage() {
     mutationFn: (id: string) => salesService.deactivateCustomer(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.sales.customers.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Cliente desactivado')
     },
     onError: () => toast.error('Error al desactivar cliente'),
@@ -84,6 +87,7 @@ export function ClientesPage() {
     mutationFn: (id: string) => salesService.reactivateCustomer(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.sales.customers.all })
+      qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Cliente activado')
     },
     onError: () => toast.error('Error al activar cliente'),

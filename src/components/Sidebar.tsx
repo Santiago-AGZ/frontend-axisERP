@@ -24,7 +24,7 @@ const allNavItems = [
   { icon: ShoppingCart, label: 'Ventas', to: '/ventas', roles: ['ADMIN', 'VENDEDOR'] },
   { icon: FileText, label: 'Facturas', to: '/facturas', roles: ['ADMIN', 'VENDEDOR'] },
   { icon: Warehouse, label: 'Inventario', to: '/inventario', roles: ['ADMIN', 'INVENTARIO'] },
-  { icon: Truck, label: 'Proveedores', to: '/proveedores', roles: ['ADMIN', 'INVENTARIO'] },
+  { icon: Truck, label: 'Proveedores', to: '/proveedores', roles: ['ADMIN'] },
   { icon: FileText, label: 'Compras', to: '/compras', roles: ['ADMIN', 'INVENTARIO'] },
   { icon: BarChart3, label: 'Reportes', to: '/reportes', roles: ['ADMIN'] },
   { icon: ClipboardList, label: 'Auditoría', to: '/auditoria', roles: ['ADMIN'] },
