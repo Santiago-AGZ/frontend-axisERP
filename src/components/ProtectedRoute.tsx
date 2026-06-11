@@ -12,6 +12,13 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     initialize()
   }, [initialize])
 
+  useEffect(() => {
+    if (isLoading) return
+    if (!isAuthenticated) {
+      window.location.replace('/login')
+    }
+  }, [isAuthenticated, isLoading])
+
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -21,7 +28,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!isAuthenticated) {
-    window.location.replace('/login')
     return null
   }
 

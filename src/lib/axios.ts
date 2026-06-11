@@ -11,6 +11,11 @@ function getApiBaseURL(): string {
   return '/api/v1'
 }
 
+function redirectToLogin() {
+  if (window.location.pathname === '/login') return
+  window.location.replace('/login')
+}
+
 export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
 }
@@ -83,6 +88,7 @@ api.interceptors.response.use(
 
     if (originalRequest.url?.includes('/auth/refresh')) {
       clearAuthTokens()
+      redirectToLogin()
       return Promise.reject(error)
     }
 
@@ -103,6 +109,7 @@ api.interceptors.response.use(
     if (!refreshToken) {
       isRefreshing = false
       clearAuthTokens()
+      redirectToLogin()
       return Promise.reject(error)
     }
 
@@ -119,6 +126,7 @@ api.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError, null)
       clearAuthTokens()
+      redirectToLogin()
       return Promise.reject(refreshError)
     } finally {
       isRefreshing = false
