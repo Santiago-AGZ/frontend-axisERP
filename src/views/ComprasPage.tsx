@@ -296,7 +296,7 @@ export function ComprasPage() {
           {viewPurchase && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">Proveedor ID:</span> {viewPurchase.supplierId}</div>
+                <div><span className="text-muted-foreground">Proveedor:</span> {supplierMap.get(viewPurchase.supplierId) ?? viewPurchase.supplierId}</div>
                 <div><span className="text-muted-foreground">Estado:</span> {viewPurchase.status}</div>
                 <div><span className="text-muted-foreground">Fecha:</span> {new Date(viewPurchase.createdAt).toLocaleString()}</div>
               </div>
