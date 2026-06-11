@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { SeoHead } from '@/components/shared/seo-head'
+import { useAuthStore } from '@/stores/auth'
 
 const orderStatusFlow: Record<string, string> = {
   BORRADOR: 'PENDIENTE',
@@ -57,6 +58,8 @@ type CreatePurchaseValues = z.infer<typeof createPurchaseSchema>
 
 export function ComprasPage() {
   const qc = useQueryClient()
+  const { user } = useAuthStore()
+  const canManageStatus = user?.role === 'ADMIN'
   const [page, setPage] = useState(1)
   const [open, setOpen] = useState(false)
   const [viewPurchase, setViewPurchase] = useState<PurchaseResponse | null>(null)
@@ -195,12 +198,12 @@ export function ComprasPage() {
               <PackageCheck className="mr-1 size-3" />Recibir
             </Button>
           )}
-          {p.status === 'BORRADOR' && (
+          {canManageStatus && p.status === 'BORRADOR' && (
             <Button variant="outline" size="sm" onClick={() => statusMutation.mutate({ id: p.id, status: orderStatusFlow[p.status] })}>
               {orderStatusFlow[p.status]}
             </Button>
           )}
-          {['BORRADOR', 'PENDIENTE'].includes(p.status) && (
+          {canManageStatus && ['BORRADOR', 'PENDIENTE'].includes(p.status) && (
             <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Cancelar compra" onClick={() => { setCancelId(p.id); setCancelOpen(true) }}>
               <XCircle className="size-4" />
             </Button>

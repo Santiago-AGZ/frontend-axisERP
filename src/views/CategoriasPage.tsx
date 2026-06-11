@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { SeoHead } from '@/components/shared/seo-head'
+import { useAuthStore } from '@/stores/auth'
 
 const noHTML = (v: string) => !/[<>&"']/.test(v)
 const categorySchema = z.object({
@@ -45,6 +46,8 @@ interface CategoryItem {
 
 export function CategoriasPage() {
   const qc = useQueryClient()
+  const { user } = useAuthStore()
+  const canToggleStatus = user?.role === 'ADMIN'
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [open, setOpen] = useState(false)
@@ -173,11 +176,11 @@ export function CategoriasPage() {
           <Button variant="ghost" size="icon" className="size-8" aria-label="Editar" onClick={() => handleEdit(c)}>
             <Pencil className="size-4" />
           </Button>
-          {c.status === 'ACTIVA' ? (
+          {canToggleStatus && c.status === 'ACTIVA' ? (
             <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Desactivar" onClick={() => setConfirmAction({type:'deactivate', id: c.id})}>
               <Ban className="size-4" />
             </Button>
-          ) : (
+          ) : canToggleStatus && (
             <Button variant="ghost" size="icon" className="size-8 text-emerald-600" aria-label="Activar" onClick={() => setConfirmAction({type:'reactivate', id: c.id})}>
               <CheckCircle className="size-4" />
             </Button>
