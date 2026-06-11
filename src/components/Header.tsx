@@ -1,4 +1,4 @@
-import { LogOut } from 'lucide-react'
+import { LogOut, Menu } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -19,12 +19,25 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
-export function Header() {
+interface HeaderProps {
+  onToggleSidebar: () => void
+}
+
+export function Header({ onToggleSidebar }: HeaderProps) {
   const { user, logout } = useAuthStore()
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-card px-6">
-      <div />
+    <header className="flex h-16 items-center justify-between border-b bg-card px-4 sm:px-6">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="shrink-0 lg:hidden"
+        onClick={onToggleSidebar}
+        aria-label="Abrir menu"
+      >
+        <Menu className="size-5" />
+      </Button>
+      <div className="hidden lg:block" />
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-3">
           <Avatar className="size-8">
