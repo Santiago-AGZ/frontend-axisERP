@@ -29,7 +29,17 @@ type ResetValues = z.infer<typeof resetSchema>
 export function ResetPasswordPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const token = searchParams.get('token') || ''
+
+  function getTokenFromUrl(): string {
+    const queryToken = searchParams.get('token')
+    if (queryToken) return queryToken
+
+    const hash = window.location.hash.substring(1)
+    const hashParams = new URLSearchParams(hash)
+    return hashParams.get('access_token') || ''
+  }
+
+  const token = getTokenFromUrl()
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
