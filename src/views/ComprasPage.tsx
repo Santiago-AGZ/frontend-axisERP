@@ -23,9 +23,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { SeoHead } from '@/components/shared/seo-head'
 import { useAuthStore } from '@/stores/auth'
-import { nextPurchaseStatusLabel, statusLabel } from '@/lib/labels'
 
 const orderStatusFlow: Record<string, string> = {
   BORRADOR: 'PENDIENTE',
@@ -87,7 +85,6 @@ export function ComprasPage() {
   const suppliers = suppliersData?.data ?? []
   const products = productsData?.data ?? []
   const supplierMap = new Map(suppliers.map((s) => [s.id, s.name]))
-  const productMap = new Map(products.map((p) => [p.id, p.name]))
 
   const form = useForm<CreatePurchaseValues>({
     resolver: zodResolver(createPurchaseSchema),
@@ -201,7 +198,7 @@ export function ComprasPage() {
           )}
           {canManageStatus && p.status === 'BORRADOR' && (
             <Button variant="outline" size="sm" onClick={() => statusMutation.mutate({ id: p.id, status: orderStatusFlow[p.status] })}>
-              {nextPurchaseStatusLabel[orderStatusFlow[p.status]] ?? orderStatusFlow[p.status]}
+              {orderStatusFlow[p.status]}
             </Button>
           )}
           {canManageStatus && ['BORRADOR', 'PENDIENTE'].includes(p.status) && (
@@ -216,7 +213,6 @@ export function ComprasPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SeoHead title="Compras" description="Órdenes de compra del sistema AxisERP." />
       <PageHeader
         title="Compras"
         description="Gestión de órdenes de compra"

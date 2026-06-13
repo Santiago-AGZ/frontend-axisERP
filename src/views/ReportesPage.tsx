@@ -16,10 +16,8 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts'
 import { ErrorState } from '@/components/shared/error-state'
-import { SeoHead } from '@/components/shared/seo-head'
 import { useAuthStore } from '@/stores/auth'
 import { formatCurrency } from '@/lib/format'
-import { statusLabel } from '@/lib/labels'
 
 const PIE_COLORS = [
   'oklch(0.596 0.145 163.225)',
@@ -373,7 +371,6 @@ export function ReportesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SeoHead title="Reportes" description="Reportes y estadísticas del sistema AxisERP." />
       <PageHeader title="Reportes" description="Analisis y estadisticas del negocio" />
 
       <Tabs defaultValue={isAdmin ? 'sales' : 'inventory'} className="space-y-6">

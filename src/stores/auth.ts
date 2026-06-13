@@ -45,6 +45,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         status: me.status,
       },
       isAuthenticated: true,
+      isLoading: false,
     })
   },
 
@@ -76,9 +77,14 @@ export const useAuthStore = create<AuthState>((set) => ({
         isAuthenticated: true,
         isLoading: false,
       })
-    } catch {
-      clearAuthTokens()
-      set({ user: null, isAuthenticated: false, isLoading: false })
+      } catch (err: unknown) {
+        const axiosErr = err as { response?: { status?: number } }
+        if (axiosErr.response?.status !== 401) {
+          set({ isLoading: false })
+          return
+        }
+        clearAuthTokens()
+        set({ user: null, isAuthenticated: false, isLoading: false })
     }
   },
 }))

@@ -25,8 +25,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { SeoHead } from '@/components/shared/seo-head'
-import { useAuthStore } from '@/stores/auth'
+
+type CreateSaleValues = z.infer<typeof createSaleSchema>
 
 const noHTML = (v: string) => !/[<>&"']/.test(v)
 const saleItemSchema = z.object({
@@ -37,9 +37,14 @@ const saleItemSchema = z.object({
   discount: z.number().min(0),
 })
 
-type CreateSaleValues = z.infer<ReturnType<typeof createSaleSchema>>
+const createSaleSchema = z.object({
+  customerId: z.string().min(1, 'El cliente es requerido').refine(noHTML),
+  items: z.array(saleItemSchema).min(1, 'Agrega al menos un producto'),
+  discount: z.number().min(0).max(30),
+  notes: z.string().refine(noHTML).optional(),
+})
 
-const statusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  const statusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
   CONFIRMADA: 'outline',
   PAGADA: 'default',
   ANULADA: 'destructive',
@@ -49,17 +54,9 @@ const statusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destruc
 
 export function VentasPage() {
   const qc = useQueryClient()
-  const { user } = useAuthStore()
-  const isAdmin = user?.role === 'ADMIN'
+  const isAdmin = true
   const [page, setPage] = useState(1)
   const [open, setOpen] = useState(false)
-
-  const createSaleSchema = z.object({
-    customerId: z.string().min(1, 'El cliente es requerido').refine(noHTML),
-    items: z.array(saleItemSchema).min(1, 'Agrega al menos un producto'),
-    discount: z.number().min(0).max(isAdmin ? 100 : 30),
-    notes: z.string().refine(noHTML).optional(),
-  })
   const [viewSale, setViewSale] = useState<SaleResponse | null>(null)
   const [voidOpen, setVoidOpen] = useState(false)
   const [voidingId, setVoidingId] = useState<string | null>(null)
@@ -216,7 +213,6 @@ export function VentasPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <SeoHead title="Ventas" description="Registro de ventas del sistema AxisERP." />
       <PageHeader
         title="Ventas"
         description="Registro de ventas"

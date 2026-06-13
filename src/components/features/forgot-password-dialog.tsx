@@ -125,7 +125,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
             <DialogHeader>
               <DialogTitle>Correo enviado</DialogTitle>
               <DialogDescription>
-                Revisa tu bandeja de entrada y sigue las instrucciones para restablecer tu contraseña.
+                Recibirás un correo de <strong>Supabase</strong> con un enlace para restablecer tu contraseña. Al hacer clic, serás redirigido a la página de Supabase donde podrás crear una nueva contraseña. Luego vuelve aquí para iniciar sesión.
               </DialogDescription>
             </DialogHeader>
 
@@ -134,7 +134,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
                 <CheckCircle2 className="size-6 text-emerald-600 dark:text-emerald-400" />
               </div>
               <p className="text-center text-sm text-muted-foreground">
-                Si el correo ingresado está registrado, recibirás un mensaje con los pasos a seguir.
+                Si el correo está registrado, recibirás un mensaje de Supabase con los pasos a seguir. Revisa también tu carpeta de spam.
               </p>
             </div>
 

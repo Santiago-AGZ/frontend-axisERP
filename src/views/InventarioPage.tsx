@@ -93,7 +93,7 @@ export function InventarioPage() {
     queryFn: () => inventoryService.getAlerts({ page: 1, size: 200 }),
   })
 
-  const { data: depletedData, isLoading: depletedLoading, isError: depletedError, refetch: depletedRefetch } = useQuery({
+  const { data: depletedData, isError: depletedError, refetch: depletedRefetch } = useQuery({
     queryKey: queryKeys.inventory.alerts.depleted({ page: 1, size: 200 }),
     queryFn: () => inventoryService.getDepleted({ page: 1, size: 200 }),
   })
@@ -357,7 +357,7 @@ export function InventarioPage() {
 
         <TabsContent value="movements" className="mt-4">
           <div className="mb-4">
-            <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+            <Select value={selectedProductId} onValueChange={(v) => setSelectedProductId(v ?? '')}>
               <SelectTrigger className="w-72"><SelectValue placeholder="Selecciona un producto para ver sus movimientos" /></SelectTrigger>
               <SelectContent>
                 {products.filter(p => p.status === 'ACTIVO').map((p) => (
