@@ -20,10 +20,12 @@ import {
   Form, FormField, FormItem, FormLabel, FormControl, FormMessage,
 } from '@/components/ui/form'
 import { SeoHead } from '@/components/shared/seo-head'
+import { noHTML } from '@/lib/validations'
+import { extractApiErrorMessage } from '@/lib/axios'
 
-const noHTML = (v: string) => !/[<>&"']/.test(v)
 const supplierSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').refine(noHTML),
+  codigo: z.string().regex(/^PROV-\d{6}$/, 'El código debe tener formato PROV-123456').refine(noHTML),
   nit: z.string().min(1, 'El NIT es requerido').refine(noHTML),
   phone: z.string().refine(noHTML).optional(),
   email: z.string().email('Email inválido').refine(noHTML).optional().or(z.literal('')),
@@ -48,8 +50,8 @@ export function ProveedoresPage() {
   const createMutation = useMutation({
     mutationFn: (data: SupplierValues) => purchaseService.createSupplier({
       name: data.name,
+      codigo: data.codigo,
       nit: data.nit,
-      codigo: '',
       phone: data.phone || undefined,
       email: data.email || undefined,
       address: data.address || undefined,
@@ -59,7 +61,7 @@ export function ProveedoresPage() {
       toast.success('Proveedor creado')
       setOpen(false)
     },
-    onError: () => toast.error('Error al crear proveedor'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al crear proveedor'),
   })
 
   const updateMutation = useMutation({
@@ -70,7 +72,7 @@ export function ProveedoresPage() {
       toast.success('Proveedor actualizado')
       setOpen(false)
     },
-    onError: () => toast.error('Error al actualizar proveedor'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al actualizar proveedor'),
   })
 
   const deactivateMutation = useMutation({
@@ -79,7 +81,7 @@ export function ProveedoresPage() {
       qc.invalidateQueries({ queryKey: queryKeys.purchases.suppliers.all })
       toast.success('Proveedor desactivado')
     },
-    onError: () => toast.error('Error al desactivar proveedor'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al desactivar proveedor'),
   })
 
   const reactivateMutation = useMutation({
@@ -88,17 +90,17 @@ export function ProveedoresPage() {
       qc.invalidateQueries({ queryKey: queryKeys.purchases.suppliers.all })
       toast.success('Proveedor activado')
     },
-    onError: () => toast.error('Error al activar proveedor'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al activar proveedor'),
   })
 
   const form = useForm<SupplierValues>({
     resolver: zodResolver(supplierSchema),
-    defaultValues: { name: '', nit: '', phone: '', email: '', address: '' },
+    defaultValues: { name: '', codigo: 'PROV-', nit: '', phone: '', email: '', address: '' },
   })
 
   function handleCreate() {
     setEditing(null)
-    form.reset({ name: '', nit: '', phone: '', email: '', address: '' })
+    form.reset({ name: '', codigo: 'PROV-', nit: '', phone: '', email: '', address: '' })
     setOpen(true)
   }
 
@@ -106,6 +108,7 @@ export function ProveedoresPage() {
     setEditing(supplier)
     form.reset({
       name: supplier.name,
+      codigo: supplier.codigo,
       nit: supplier.nit,
       phone: supplier.phone ?? '',
       email: supplier.email ?? '',
@@ -195,6 +198,7 @@ export function ProveedoresPage() {
           className="pl-10"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+          aria-label="Buscar proveedores"
         />
       </div>
 
@@ -227,11 +231,14 @@ export function ProveedoresPage() {
                 <FormField control={form.control} name="name" render={({ field }) => (
                   <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
-                <FormField control={form.control} name="nit" render={({ field }) => (
-                  <FormItem><FormLabel>NIT</FormLabel><FormControl><Input {...field} disabled={!!editing} /></FormControl><FormMessage /></FormItem>
+                <FormField control={form.control} name="codigo" render={({ field }) => (
+                  <FormItem><FormLabel>Código</FormLabel><FormControl><Input {...field} disabled={!!editing} placeholder="PROV-123456" /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
               <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="nit" render={({ field }) => (
+                  <FormItem><FormLabel>NIT</FormLabel><FormControl><Input {...field} disabled={!!editing} /></FormControl><FormMessage /></FormItem>
+                )} />
                 <FormField control={form.control} name="email" render={({ field }) => (
                   <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />

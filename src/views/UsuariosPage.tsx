@@ -3,8 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Search, Plus, Pencil, Ban, CheckCircle, Trash2, UserCog } from 'lucide-react'
+import { Search, Plus, Pencil, Ban, CheckCircle, Trash2, UserCog, Send, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { AxiosError } from 'axios'
+import { extractApiErrorMessage } from '@/lib/axios'
 import { authService } from '@/services/auth'
 import { queryKeys } from '@/lib/query-keys'
 import { PageHeader } from '@/components/shared/page-header'
@@ -22,7 +24,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { SeoHead } from '@/components/shared/seo-head'
-const noHTML = (v: string) => !/[<>&"']/.test(v)
+import { roleTextColors, statusBadge } from '@/lib/labels'
+import type { ApiResponse } from '@/types/api'
+import { noHTML } from '@/lib/validations'
+
 const userFormSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').max(255).refine(noHTML),
   email: z.string().email('Email inválido').refine(noHTML),
@@ -30,19 +35,6 @@ const userFormSchema = z.object({
 })
 
 type UserFormValues = z.infer<typeof userFormSchema>
-
-const roleColors: Record<string, string> = {
-  ADMIN: 'text-red-600',
-  VENDEDOR: 'text-blue-600',
-  INVENTARIO: 'text-amber-600',
-}
-
-const statusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  ACTIVO: 'default',
-  INACTIVO: 'secondary',
-  PENDIENTE: 'outline',
-  ELIMINADO: 'destructive',
-}
 
 interface UserListItem {
   id: string
@@ -87,7 +79,7 @@ export function UsuariosPage() {
       toast.success('Usuario creado')
       setOpen(false)
     },
-    onError: () => toast.error('Error al crear usuario'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al crear usuario'),
   })
 
   const updateMutation = useMutation({
@@ -98,7 +90,7 @@ export function UsuariosPage() {
       toast.success('Usuario actualizado')
       setOpen(false)
     },
-    onError: () => toast.error('Error al actualizar usuario'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al actualizar usuario'),
   })
 
   const deactivateMutation = useMutation({
@@ -109,7 +101,10 @@ export function UsuariosPage() {
       toast.success('Usuario desactivado')
       setConfirmAction(null)
     },
-    onError: () => toast.error('Error al desactivar usuario'),
+    onError: (err) => {
+      const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'Error al desactivar usuario'
+      toast.error(msg)
+    },
   })
 
   const reactivateMutation = useMutation({
@@ -118,7 +113,7 @@ export function UsuariosPage() {
       qc.invalidateQueries({ queryKey: queryKeys.auth.users.all })
       toast.success('Usuario reactivado')
     },
-    onError: () => toast.error('Error al reactivar usuario'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al reactivar usuario'),
   })
 
   const deleteMutation = useMutation({
@@ -129,7 +124,19 @@ export function UsuariosPage() {
       toast.success('Usuario eliminado')
       setConfirmAction(null)
     },
-    onError: () => toast.error('Error al eliminar usuario'),
+    onError: (err) => {
+      const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'Error al eliminar usuario'
+      toast.error(msg)
+    },
+  })
+
+  const resendInvitation = useMutation({
+    mutationFn: (email: string) => authService.requestPasswordReset(email),
+    onSuccess: () => toast.success('Correo de restablecimiento reenviado'),
+    onError: (err) => {
+      const msg = (err as AxiosError<{ message?: string }>)?.response?.data?.message || 'Error al reenviar'
+      toast.error(msg)
+    },
   })
 
   const form = useForm<UserFormValues>({
@@ -180,7 +187,7 @@ export function UsuariosPage() {
     {
       header: 'Rol',
       accessor: (u) => (
-        <span className={`text-sm font-medium ${roleColors[u.role] ?? ''}`}>
+        <span className={`text-sm font-medium ${roleTextColors[u.role] ?? ''}`}>
           {u.role}
         </span>
       ),
@@ -215,6 +222,18 @@ export function UsuariosPage() {
               <CheckCircle className="size-4" />
             </Button>
           )}
+          {u.status === 'PENDIENTE' && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              aria-label="Reenviar invitación"
+              onClick={() => resendInvitation.mutate(u.email)}
+              disabled={resendInvitation.isPending}
+            >
+              {resendInvitation.isPending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+            </Button>
+          )}
           {u.status !== 'ELIMINADO' && (
             <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Eliminar" onClick={() => { setConfirmAction({ type: 'delete', userId: u.id }); confirmForm.reset({ password: '' }) }}>
               <Trash2 className="size-4" />
@@ -246,6 +265,7 @@ export function UsuariosPage() {
           className="pl-10"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+          aria-label="Buscar usuarios"
         />
       </div>
 

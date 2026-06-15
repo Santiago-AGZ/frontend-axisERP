@@ -5,7 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Search, Plus, Pencil, Ban, CheckCircle, Package } from 'lucide-react'
 import { toast } from 'sonner'
-import { catalogService } from '@/services/catalog'
+import { catalogService, type ProductResponse } from '@/services/catalog'
+import { extractApiErrorMessage } from '@/lib/axios'
 import { queryKeys } from '@/lib/query-keys'
 import { useAuthStore } from '@/stores/auth'
 import { PageHeader } from '@/components/shared/page-header'
@@ -25,8 +26,8 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { SeoHead } from '@/components/shared/seo-head'
+import { noHTML } from '@/lib/validations'
 
-const noHTML = (v: string) => !/[<>&"']/.test(v)
 const productSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').refine(noHTML),
   codigo: z.string().min(1, 'El código es requerido').refine(noHTML),
@@ -38,17 +39,6 @@ const productSchema = z.object({
 
 type ProductValues = z.infer<typeof productSchema>
 
-interface ProductItem {
-  id: string
-  name: string
-  codigo: string
-  description?: string
-  category: { id: string; name: string }
-  purchasePrice: number
-  salePrice: number
-  status: string
-}
-
 export function ProductosPage() {
   const qc = useQueryClient()
   const { user } = useAuthStore()
@@ -57,7 +47,7 @@ export function ProductosPage() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [open, setOpen] = useState(false)
-  const [editing, setEditing] = useState<ProductItem | null>(null)
+  const [editing, setEditing] = useState<ProductResponse | null>(null)
   const [confirmAction, setConfirmAction] = useState<{type: 'deactivate'|'reactivate', id: string} | null>(null)
 
   const { data: productsData, isLoading, isError, refetch } = useQuery({
@@ -80,7 +70,7 @@ export function ProductosPage() {
       toast.success('Producto creado')
       setOpen(false)
     },
-    onError: () => toast.error('Error al crear producto'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al crear producto'),
   })
 
   const updateMutation = useMutation({
@@ -92,7 +82,7 @@ export function ProductosPage() {
       toast.success('Producto actualizado')
       setOpen(false)
     },
-    onError: () => toast.error('Error al actualizar producto'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al actualizar producto'),
   })
 
   const deactivateMutation = useMutation({
@@ -102,7 +92,7 @@ export function ProductosPage() {
       qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Producto desactivado')
     },
-    onError: () => toast.error('Error al desactivar producto'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al desactivar producto'),
   })
 
   const reactivateMutation = useMutation({
@@ -112,7 +102,7 @@ export function ProductosPage() {
       qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Producto activado')
     },
-    onError: () => toast.error('Error al activar producto'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al activar producto'),
   })
 
   const form = useForm<ProductValues>({
@@ -126,7 +116,7 @@ export function ProductosPage() {
     setOpen(true)
   }
 
-  function handleEdit(product: ProductItem) {
+  function handleEdit(product: ProductResponse) {
     setEditing(product)
     form.reset({
       name: product.name,
@@ -155,7 +145,7 @@ export function ProductosPage() {
   const products = productsData?.data ?? []
   const pagination = productsData?.pagination ?? null
 
-  const columns: Column<ProductItem>[] = [
+  const columns: Column<ProductResponse>[] = [
     {
       header: 'Código',
       accessor: (p) => <span className="font-mono text-sm">{p.codigo}</span>,
@@ -228,6 +218,7 @@ export function ProductosPage() {
           className="pl-10"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+          aria-label="Buscar productos"
         />
       </div>
 

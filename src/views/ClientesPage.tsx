@@ -24,8 +24,9 @@ import {
 } from '@/components/ui/select'
 import { SeoHead } from '@/components/shared/seo-head'
 import { useAuthStore } from '@/stores/auth'
+import { noHTML } from '@/lib/validations'
+import { extractApiErrorMessage } from '@/lib/axios'
 
-const noHTML = (v: string) => !/[<>&"']/.test(v)
 const customerSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').refine(noHTML),
   codigo: z.string().min(1, 'El código es requerido').refine(noHTML),
@@ -61,11 +62,15 @@ export function ClientesPage() {
       toast.success('Cliente creado')
       setOpen(false)
     },
-    onError: () => toast.error('Error al crear cliente'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al crear cliente'),
   })
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: CustomerValues }) =>
+  const updateMutation = useMutation<
+    CustomerResponse,
+    Error,
+    { id: string; data: { name: string; email?: string; phone?: string; address?: string } }
+  >({
+    mutationFn: ({ id, data }) =>
       salesService.updateCustomer(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.sales.customers.all })
@@ -73,7 +78,7 @@ export function ClientesPage() {
       toast.success('Cliente actualizado')
       setOpen(false)
     },
-    onError: () => toast.error('Error al actualizar cliente'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al actualizar cliente'),
   })
 
   const deactivateMutation = useMutation({
@@ -83,7 +88,7 @@ export function ClientesPage() {
       qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Cliente desactivado')
     },
-    onError: () => toast.error('Error al desactivar cliente'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al desactivar cliente'),
   })
 
   const reactivateMutation = useMutation({
@@ -93,7 +98,7 @@ export function ClientesPage() {
       qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Cliente activado')
     },
-    onError: () => toast.error('Error al activar cliente'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al activar cliente'),
   })
 
   const [historyCustomer, setHistoryCustomer] = useState<CustomerResponse | null>(null)
@@ -146,7 +151,8 @@ export function ClientesPage() {
 
   function onSubmit(data: CustomerValues) {
     if (editing) {
-      updateMutation.mutate({ id: editing.id, data: cleanOptional(data) })
+      const { name, email, phone, address } = data
+      updateMutation.mutate({ id: editing.id, data: { name, email: email || undefined, phone: phone || undefined, address: address || undefined } })
     } else {
       createMutation.mutate(cleanOptional(data))
     }
@@ -223,6 +229,7 @@ export function ClientesPage() {
           className="pl-10"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+          aria-label="Buscar clientes"
         />
       </div>
 

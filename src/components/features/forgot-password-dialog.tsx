@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Mail, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react'
 import { authService } from '@/services/auth'
+import { noHTML } from '@/lib/validations'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -14,7 +15,6 @@ import {
 } from '@/components/ui/form'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
-const noHTML = (v: string) => !/[<>&"']/.test(v)
 const resetSchema = z.object({
   email: z.string().email('Ingresa un email válido').refine(noHTML),
 })
@@ -51,9 +51,10 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
     setError('')
     setIsLoading(true)
     try {
-      await authService.passwordReset(data.email)
+      await authService.requestPasswordReset(data.email)
       setStep('sent')
-    } catch {
+    } catch (err) {
+      console.error('Error al enviar solicitud de restablecimiento', err)
       setError('Error al enviar la solicitud. Verifica el correo e intenta de nuevo.')
     } finally {
       setIsLoading(false)
@@ -125,7 +126,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
             <DialogHeader>
               <DialogTitle>Correo enviado</DialogTitle>
               <DialogDescription>
-                Recibirás un correo de <strong>Supabase</strong> con un enlace para restablecer tu contraseña. Al hacer clic, serás redirigido a la página de Supabase donde podrás crear una nueva contraseña. Luego vuelve aquí para iniciar sesión.
+                Recibirás un correo con un enlace para restablecer tu contraseña. Haz clic en él para crear una nueva contraseña.
               </DialogDescription>
             </DialogHeader>
 
@@ -134,7 +135,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
                 <CheckCircle2 className="size-6 text-emerald-600 dark:text-emerald-400" />
               </div>
               <p className="text-center text-sm text-muted-foreground">
-                Si el correo está registrado, recibirás un mensaje de Supabase con los pasos a seguir. Revisa también tu carpeta de spam.
+                Si el correo está registrado, recibirás un mensaje con los pasos a seguir. Revisa también tu carpeta de spam.
               </p>
             </div>
 
