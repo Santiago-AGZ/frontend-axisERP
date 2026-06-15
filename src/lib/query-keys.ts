@@ -64,6 +64,10 @@ export const queryKeys = {
       detail: (id: string) => ['invoices', id] as const,
       bySale: (saleId: string) => ['invoices', 'by-sale', saleId] as const,
     },
+    auditLogs: {
+      all: ['sales', 'audit-logs'] as const,
+      list: (params?: Record<string, unknown>) => ['sales', 'audit-logs', params] as const,
+    },
   },
   purchases: {
     suppliers: {
