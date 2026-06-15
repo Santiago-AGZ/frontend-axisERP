@@ -1,12 +1,13 @@
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 
-const TOKEN_KEY = 'axiserp-token'
 const REFRESH_TOKEN_KEY = 'axiserp-refresh-token'
 
-function getApiBaseURL(): string {
+let inMemoryAccessToken: string | null = null
+
+export function getApiBaseURL(): string {
   const apiUrl = import.meta.env.VITE_API_URL
   if (apiUrl) {
-    return `${apiUrl}/api/v1`
+    return `${apiUrl.replace(/\/+$/, '')}/api/v1`
   }
   return '/api/v1'
 }
@@ -17,32 +18,56 @@ function redirectToLogin() {
 }
 
 export function getStoredToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+  return inMemoryAccessToken
 }
 
 export function setStoredToken(token: string | null) {
-  if (token) {
-    localStorage.setItem(TOKEN_KEY, token)
-  } else {
-    localStorage.removeItem(TOKEN_KEY)
-  }
+  inMemoryAccessToken = token
 }
 
 export function getStoredRefreshToken(): string | null {
-  return localStorage.getItem(REFRESH_TOKEN_KEY)
+  try {
+    return sessionStorage.getItem(REFRESH_TOKEN_KEY)
+  } catch {
+    return null
+  }
 }
 
 export function setStoredRefreshToken(token: string | null) {
-  if (token) {
-    localStorage.setItem(REFRESH_TOKEN_KEY, token)
-  } else {
-    localStorage.removeItem(REFRESH_TOKEN_KEY)
+  try {
+    if (token) {
+      sessionStorage.setItem(REFRESH_TOKEN_KEY, token)
+    } else {
+      sessionStorage.removeItem(REFRESH_TOKEN_KEY)
+    }
+  } catch {
+    /* sessionStorage unavailable */
   }
 }
 
 export function clearAuthTokens() {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(REFRESH_TOKEN_KEY)
+  inMemoryAccessToken = null
+  try {
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY)
+  } catch {
+    /* sessionStorage unavailable */
+  }
+}
+
+export function isAxiosError<T = unknown>(error: unknown): error is AxiosError<T> {
+  return axios.isAxiosError(error)
+}
+
+export function extractApiErrorMessage(error: unknown): string | null {
+  if (isAxiosError<{ message?: string; data?: { message?: string } }>(error)) {
+    return error.response?.data?.message
+      ?? error.response?.data?.data?.message
+      ?? null
+  }
+  if (error instanceof Error) {
+    return error.message
+  }
+  return null
 }
 
 export const api = axios.create({
@@ -79,14 +104,14 @@ function processQueue(error: unknown, token: string | null = null) {
 
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config
+  async (error: AxiosError) => {
+    const originalRequest = error.config as typeof error.config & { _retry?: boolean }
 
-    if (error.response?.status !== 401 || originalRequest._retry) {
+    if (error.response?.status !== 401 || originalRequest?._retry) {
       return Promise.reject(error)
     }
 
-    if (originalRequest.url?.includes('/auth/refresh')) {
+    if (originalRequest?.url?.includes('/auth/refresh')) {
       clearAuthTokens()
       redirectToLogin()
       return Promise.reject(error)
@@ -97,12 +122,12 @@ api.interceptors.response.use(
         failedQueue.push({ resolve, reject })
       })
         .then((token) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`
-          return api(originalRequest)
+          originalRequest!.headers.Authorization = `Bearer ${token}`
+          return api(originalRequest!)
         })
     }
 
-    originalRequest._retry = true
+    originalRequest!._retry = true
     isRefreshing = true
 
     const refreshToken = getStoredRefreshToken()
@@ -121,8 +146,8 @@ api.interceptors.response.use(
       if (newRefreshToken) setStoredRefreshToken(newRefreshToken)
 
       processQueue(null, accessToken)
-      originalRequest.headers.Authorization = `Bearer ${accessToken}`
-      return api(originalRequest)
+      originalRequest!.headers.Authorization = `Bearer ${accessToken}`
+      return api(originalRequest!)
     } catch (refreshError) {
       processQueue(refreshError, null)
       clearAuthTokens()
