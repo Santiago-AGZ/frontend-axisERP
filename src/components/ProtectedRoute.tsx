@@ -1,23 +1,28 @@
 import { useAuthStore } from '@/stores/auth'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const navigate = useNavigate()
   const { isAuthenticated, isLoading, initialize } = useAuthStore()
+  const initialized = useRef(false)
 
   useEffect(() => {
-    initialize()
+    if (!initialized.current) {
+      initialized.current = true
+      initialize()
+    }
   }, [initialize])
 
   useEffect(() => {
-    if (isLoading) return
-    if (!isAuthenticated) {
-      window.location.replace('/login')
+    if (!isLoading && !isAuthenticated) {
+      navigate('/login', { replace: true })
     }
-  }, [isAuthenticated, isLoading])
+  }, [isAuthenticated, isLoading, navigate])
 
   if (isLoading) {
     return (

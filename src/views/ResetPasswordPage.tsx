@@ -3,10 +3,8 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Lock, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { Lock, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { api } from '@/lib/axios'
-import type { ApiResponse } from '@/types/api'
 import { Input } from '@/components/ui/input'
 import {
   Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription,
@@ -15,9 +13,15 @@ import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
 } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { authService } from '@/services/auth'
 
 const resetSchema = z.object({
-  password: z.string().min(8, 'Mínimo 8 caracteres'),
+  password: z.string()
+    .min(8, 'Mínimo 8 caracteres')
+    .regex(/[A-Z]/, 'Debe incluir una mayúscula')
+    .regex(/[a-z]/, 'Debe incluir una minúscula')
+    .regex(/[0-9]/, 'Debe incluir un número')
+    .regex(/[@#$%^&*!]/, 'Debe incluir un carácter especial (@#$%^&*!)'),
   confirmPassword: z.string().min(1, 'Confirma tu contraseña'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Las contraseñas no coinciden',
@@ -30,19 +34,11 @@ export function ResetPasswordPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  function getTokenFromUrl(): string {
-    const queryToken = searchParams.get('token')
-    if (queryToken) return queryToken
-
-    const hash = window.location.hash.substring(1)
-    const hashParams = new URLSearchParams(hash)
-    return hashParams.get('access_token') || ''
-  }
-
-  const token = getTokenFromUrl()
+  const token = searchParams.get('token') || ''
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const form = useForm<ResetValues>({
     resolver: zodResolver(resetSchema),
@@ -74,14 +70,11 @@ export function ResetPasswordPage() {
     setError('')
     setIsLoading(true)
     try {
-      await api.post<ApiResponse<null>>('/auth/password-reset/confirm', {
-        token,
-        newPassword: data.password,
-      })
+      await authService.passwordReset(token, data.password)
       setSuccess(true)
     } catch (err) {
-      const axiosErr = err as { response?: { data?: { message?: string } } }
-      setError(axiosErr.response?.data?.message || 'Error al cambiar la contraseña. El enlace puede haber expirado.')
+      const message = err instanceof Error ? err.message : 'Error al cambiar la contraseña. El enlace puede haber expirado.'
+      setError(message)
     } finally {
       setIsLoading(false)
     }
@@ -121,7 +114,7 @@ export function ResetPasswordPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <Alert variant="destructive" className="mb-4">
+            <Alert variant="destructive" className="mb-4" role="alert">
               <AlertCircle className="size-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
@@ -139,16 +132,25 @@ export function ResetPasswordPage() {
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
-                          type="password"
+                          type={showPassword ? 'text' : 'password'}
                           placeholder="Mínimo 8 caracteres"
-                          className="pl-10"
+                          className="pl-10 pr-10"
                           autoComplete="new-password"
+                          aria-label="Nueva contraseña"
                           {...field}
                         />
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          onClick={() => setShowPassword(!showPassword)}
+                          aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                        >
+                          {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        </button>
                       </div>
                     </FormControl>
                     <FormDescription>
-                      Mínimo 8 caracteres, incluye mayúscula, minúscula y número
+                      Mínimo 8 caracteres, incluye mayúscula, minúscula, número y carácter especial (@#$%^&*!)
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -165,10 +167,11 @@ export function ResetPasswordPage() {
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
-                          type="password"
+                          type={showPassword ? 'text' : 'password'}
                           placeholder="Repite la contraseña"
                           className="pl-10"
                           autoComplete="new-password"
+                          aria-label="Confirmar contraseña"
                           {...field}
                         />
                       </div>
@@ -179,7 +182,7 @@ export function ResetPasswordPage() {
               />
 
               <Button type="submit" className="w-full gap-2" disabled={isLoading}>
-                {isLoading ? <Loader2 className="size-4 animate-spin" /> : null}
+                {isLoading && <Loader2 className="size-4 animate-spin" />}
                 {isLoading ? 'Actualizando...' : 'Cambiar contraseña'}
               </Button>
 
