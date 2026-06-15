@@ -10,6 +10,7 @@ import { ErrorState } from './error-state'
 import type { PaginationMeta } from '@/types/api'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
 
 export interface Column<T> {
   header: string
@@ -40,12 +41,12 @@ interface DataTableProps<T> {
 
 function TableSkeleton({ columns, rows = 5 }: { columns: Column<unknown>[]; rows?: number }) {
   return (
-    <div className="rounded-md border">
+    <div className="rounded-xl border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
             {columns.map((col) => (
-              <TableHead key={col.header} className={col.className}>
+              <TableHead key={col.header} className={cn(col.className, 'h-11')}>
                 {col.header}
               </TableHead>
             ))}
@@ -56,7 +57,7 @@ function TableSkeleton({ columns, rows = 5 }: { columns: Column<unknown>[]; rows
             <TableRow key={rowIdx}>
               {columns.map((col, colIdx) => (
                 <TableCell key={colIdx} className={col.className}>
-                  <Skeleton className={`h-4 ${colIdx === 0 ? 'w-32' : colIdx === columns.length - 1 ? 'w-20' : 'w-24'}`} />
+                  <Skeleton className={`skeleton-shimmer h-3.5 rounded-md ${colIdx === 0 ? 'w-32' : colIdx === columns.length - 1 ? 'w-20' : 'w-24'}`} />
                 </TableCell>
               ))}
             </TableRow>
@@ -68,9 +69,9 @@ function TableSkeleton({ columns, rows = 5 }: { columns: Column<unknown>[]; rows
 }
 
 function SortIcon({ direction }: { direction: SortDirection | null }) {
-  if (direction === 'asc') return <ArrowUp className="ml-1 size-3 shrink-0" />
-  if (direction === 'desc') return <ArrowDown className="ml-1 size-3 shrink-0" />
-  return <ArrowUpDown className="ml-1 size-3 shrink-0 opacity-30" />
+  if (direction === 'asc') return <ArrowUp className="ml-1 size-3 shrink-0 text-primary" />
+  if (direction === 'desc') return <ArrowDown className="ml-1 size-3 shrink-0 text-primary" />
+  return <ArrowUpDown className="ml-1 size-3 shrink-0 text-muted-foreground/30" />
 }
 
 export function DataTable<T>({
@@ -124,7 +125,7 @@ export function DataTable<T>({
 
   if (sortedData.length === 0) {
     return (
-      <div className="rounded-md border">
+      <div className="rounded-xl border">
         <EmptyState
           icon={emptyIcon as LucideIcon}
           title={emptyTitle}
@@ -137,7 +138,7 @@ export function DataTable<T>({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto rounded-md border">
+      <div className="overflow-hidden rounded-xl border">
         <Table aria-label={ariaLabel}>
           <TableHeader>
             <TableRow>
@@ -160,7 +161,10 @@ export function DataTable<T>({
                       : undefined,
                   } : {})}
                 >
-                  <div className={`flex items-center ${col.sortable ? 'cursor-pointer select-none hover:text-foreground' : ''}`}>
+                  <div className={cn(
+                    'flex items-center gap-0.5',
+                    col.sortable && 'cursor-pointer select-none hover:text-foreground'
+                  )}>
                     {col.header}
                     {col.sortable && (
                       <SortIcon direction={sortColumn === (col.sortKey || col.header.toLowerCase()) ? sortDirection : null} />

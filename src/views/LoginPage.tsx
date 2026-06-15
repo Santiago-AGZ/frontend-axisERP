@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { AxiosError } from 'axios'
 import { useState } from 'react'
-import { Lock, Mail, LogIn, AlertCircle } from 'lucide-react'
+import { Lock, Mail, LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
 import type { ApiResponse } from '@/types/api'
 import { Button } from '@/components/ui/button'
@@ -19,8 +19,8 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { ForgotPasswordDialog } from '@/components/features/forgot-password-dialog'
+import { noHTML } from '@/lib/validations'
 
-const noHTML = (v: string) => !/[<>&"']/.test(v)
 const loginSchema = z.object({
   email: z.string().email('Ingresa un email válido').refine(noHTML, { message: 'Email inválido' }),
   password: z.string().min(1, 'La contraseña es requerida').refine(noHTML, { message: 'Contraseña inválida' }),
@@ -34,6 +34,7 @@ export function LoginPage() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [forgotOpen, setForgotOpen] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -56,26 +57,33 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-background px-4">
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-gradient-to-br from-background via-background to-primary/[0.03] px-4">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+        <div className="absolute -top-40 -right-40 size-80 rounded-full bg-primary/[0.03] blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 size-80 rounded-full bg-info/[0.03] blur-3xl" />
+      </div>
       <SeoHead title="Iniciar Sesión" description="Accede al sistema de gestión empresarial AxisERP con tus credenciales." />
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md animate-fade-in">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">AxisERP</h1>
+          <div className="mx-auto mb-4 flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <span className="text-base font-bold">A</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">AxisERP</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Sistema de gestión empresarial
           </p>
         </div>
 
         <Card>
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-xl">Iniciar sesión</CardTitle>
+          <CardHeader className="space-y-1 pb-4">
+            <CardTitle className="text-lg">Iniciar sesión</CardTitle>
             <CardDescription>
               Ingresa tus credenciales para acceder al sistema
             </CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
-              <Alert variant="destructive" className="mb-4">
+              <Alert variant="destructive" className="mb-4" role="alert">
                 <AlertCircle className="size-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -97,6 +105,7 @@ export function LoginPage() {
                             placeholder="admin@axiserp.com"
                             className="pl-10"
                             autoComplete="email"
+                            aria-label="Correo electrónico"
                             {...field}
                           />
                         </div>
@@ -116,12 +125,21 @@ export function LoginPage() {
                         <div className="relative">
                           <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
-                            type="password"
+                            type={showPassword ? 'text' : 'password'}
                             placeholder="••••••••"
-                            className="pl-10"
+                            className="pl-10 pr-10"
                             autoComplete="current-password"
+                            aria-label="Contraseña"
                             {...field}
                           />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                          >
+                            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                          </button>
                         </div>
                       </FormControl>
                       <FormMessage />
