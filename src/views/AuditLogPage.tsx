@@ -6,7 +6,10 @@ import { PageHeader } from '@/components/shared/page-header'
 import { DataTable, type Column } from '@/components/shared/data-table'
 import { SeoHead } from '@/components/shared/seo-head'
 import { Badge } from '@/components/ui/badge'
-import { ClipboardList } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { formatDateTime } from '@/lib/format'
+import { useState } from 'react'
+import { ClipboardList, Search } from 'lucide-react'
 import { actionLabel, entityLabel, actionBadge } from '@/lib/labels'
 
 interface AuditLogRow {
@@ -24,6 +27,7 @@ interface AuditLogRow {
 
 export default function AuditLogPage() {
   const page = 1
+  const [search, setSearch] = useState('')
 
   const authAudit = useQuery({
     queryKey: queryKeys.auth.auditLogs.list({ page, size: 50 }),
@@ -48,8 +52,12 @@ export default function AuditLogPage() {
   const allLogs = [...authLogs, ...salesLogs]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
+  const filteredLogs = allLogs.filter(l =>
+    !search || Object.values(l).some(v => typeof v === 'string' && v.toLowerCase().includes(search.toLowerCase()))
+  )
+
   const columns: Column<AuditLogRow>[] = [
-    { header: 'Fecha', accessor: (l) => new Date(l.timestamp).toLocaleString() },
+    { header: 'Fecha', accessor: (l) => formatDateTime(l.timestamp) },
     { header: 'Servicio', accessor: (l) => <span className="text-xs text-muted-foreground">{l.source}</span>, className: 'w-20' },
     { header: 'Usuario', accessor: (l) => {
       const name = l.userName?.trim()
@@ -70,9 +78,19 @@ export default function AuditLogPage() {
       <SeoHead title="Auditoria" description="Registro de auditoria del sistema AxisERP." />
       <PageHeader title="Auditoria" description="Historial de acciones criticas del sistema" />
 
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Buscar en auditoría..."
+          className="pl-10"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
       <DataTable
         columns={columns}
-        data={allLogs}
+        data={filteredLogs}
         isLoading={isLoading}
         isError={isError}
         onRetry={() => refetch()}

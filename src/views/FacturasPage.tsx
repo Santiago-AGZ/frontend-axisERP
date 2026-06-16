@@ -21,7 +21,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { SeoHead } from '@/components/shared/seo-head'
 import { statusBadge } from '@/lib/labels'
-import { formatCurrency } from '@/lib/format'
+import { formatCurrency, formatDate, formatDateTime } from '@/lib/format'
 
 export function FacturasPage() {
   const [page, setPage] = useState(1)
@@ -98,7 +98,7 @@ export function FacturasPage() {
       header: 'Fecha',
       accessor: (s) => (
         <span className="text-sm text-muted-foreground">
-          {new Date(s.createdAt).toLocaleDateString()}
+          {formatDate(s.createdAt)}
         </span>
       ),
     },
@@ -217,7 +217,7 @@ export function FacturasPage() {
                 </div>
                 <div>
                   <span className="text-muted-foreground">Fecha:</span>{' '}
-                  {new Date(viewInvoice.createdAt).toLocaleString()}
+                  {formatDateTime(viewInvoice.createdAt)}
                 </div>
               </div>
 

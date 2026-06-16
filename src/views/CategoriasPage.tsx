@@ -19,13 +19,11 @@ import {
 import {
   Form, FormField, FormItem, FormLabel, FormControl, FormMessage,
 } from '@/components/ui/form'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { SeoHead } from '@/components/shared/seo-head'
 import { useAuthStore } from '@/stores/auth'
 import { noHTML } from '@/lib/validations'
+import { SearchableSelect } from '@/components/shared/searchable-select'
 import { extractApiErrorMessage } from '@/lib/axios'
 
 const categorySchema = z.object({
@@ -271,19 +269,16 @@ export function CategoriasPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Categoría Padre</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Ninguna (categoría raíz)" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="">Ninguna</SelectItem>
-                        {parentOptions.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SearchableSelect
+                      options={[
+                        { value: '', label: 'Ninguna (categoría raíz)' },
+                        ...parentOptions.map(c => ({ value: c.id, label: c.name })),
+                      ]}
+                      value={field.value ?? ''}
+                      onValueChange={field.onChange}
+                      placeholder="Ninguna (categoría raíz)"
+                      notFound="No se encontraron categorías"
+                    />
                     <FormMessage />
                   </FormItem>
                 )}

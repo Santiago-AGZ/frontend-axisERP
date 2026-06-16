@@ -22,6 +22,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
+import { formatDate, formatCurrency } from '@/lib/format'
 import { SeoHead } from '@/components/shared/seo-head'
 import { useAuthStore } from '@/stores/auth'
 import { noHTML } from '@/lib/validations'
@@ -319,11 +320,11 @@ export function ClientesPage() {
                 <div key={sale.id} className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-1">
                     <p className="font-mono text-sm font-medium">{sale.saleNumber}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(sale.createdAt).toLocaleDateString()}</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(sale.createdAt)}</p>
                     <p className="text-xs text-muted-foreground">{sale.items.length} producto(s)</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-semibold">${sale.total.toLocaleString()}</span>
+                    <span className="font-semibold">{formatCurrency(sale.total)}</span>
                     <Badge variant={sale.status === 'CONFIRMADA' || sale.status === 'PAGADA' ? 'default' : 'secondary'}>{sale.status}</Badge>
                   </div>
                 </div>

@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
   AlertTriangle, Package, ArrowUp, ArrowDown, ClipboardList,
-  RotateCcw, Scale,
+  RotateCcw, Scale, Search,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { inventoryService, type ProductInventoryResponse, type MovementResponse } from '@/services/inventory'
@@ -28,11 +28,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { SearchableSelect } from '@/components/shared/searchable-select'
 import { ErrorState } from '@/components/shared/error-state'
 import { SeoHead } from '@/components/shared/seo-head'
 import { useAuthStore } from '@/stores/auth'
 import { movementLabel, movementBadgeVariant } from '@/lib/labels'
 import { noHTML } from '@/lib/validations'
+import { formatDateTime } from '@/lib/format'
 import { extractApiErrorMessage } from '@/lib/axios'
 
 const movementSchema = z.object({
@@ -79,6 +81,8 @@ export function InventarioPage() {
   const [reverseOpen, setReverseOpen] = useState(false)
   const [reversingMovement, setReversingMovement] = useState<MovementResponse | null>(null)
   const [selectedProductId, setSelectedProductId] = useState('')
+  const [invSearch, setInvSearch] = useState('')
+  const [alertSearch, setAlertSearch] = useState('')
 
   const { data: inventoryData, isLoading: invLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.inventory.list({ page: 1, size: 200 }),
@@ -111,6 +115,19 @@ export function InventarioPage() {
   const depleted = depletedData?.data ?? []
   const movements = movementsData?.data ?? []
   const products = productsData?.data ?? []
+
+  const filteredInventory = inventory.filter(i =>
+    i.productName.toLowerCase().includes(invSearch.toLowerCase()) ||
+    i.productCodigo.toLowerCase().includes(invSearch.toLowerCase())
+  )
+  const filteredAlerts = alerts.filter(i =>
+    i.productName.toLowerCase().includes(alertSearch.toLowerCase()) ||
+    i.productCodigo.toLowerCase().includes(alertSearch.toLowerCase())
+  )
+  const filteredDepleted = depleted.filter(i =>
+    i.productName.toLowerCase().includes(alertSearch.toLowerCase()) ||
+    i.productCodigo.toLowerCase().includes(alertSearch.toLowerCase())
+  )
 
   const movementForm = useForm<MovementValues>({
     resolver: zodResolver(movementSchema),
@@ -252,7 +269,7 @@ export function InventarioPage() {
     { header: 'Cantidad', accessor: (m) => <span className="font-mono">{m.quantity}</span> },
     { header: 'Stock Anterior', accessor: (m) => m.previousStock.toString() },
     { header: 'Stock Nuevo', accessor: (m) => <span className="font-medium">{m.newStock}</span> },
-    { header: 'Fecha', accessor: (m) => new Date(m.createdAt).toLocaleString() },
+    { header: 'Fecha', accessor: (m) => formatDateTime(m.createdAt) },
     { header: 'Notas', accessor: (m) => <span className="text-sm text-muted-foreground max-w-40 truncate block">{m.notes ?? '—'}</span> },
     {
       header: '', className: 'text-right',
@@ -321,9 +338,18 @@ export function InventarioPage() {
         </TabsList>
 
         <TabsContent value="inventory" className="mt-4">
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar productos..."
+              className="pl-10"
+              value={invSearch}
+              onChange={(e) => setInvSearch(e.target.value)}
+            />
+          </div>
           <DataTable
             columns={invColumns}
-            data={inventory}
+            data={filteredInventory}
             isLoading={invLoading}
             emptyIcon={Package}
             emptyTitle="Inventario vacío"
@@ -341,16 +367,25 @@ export function InventarioPage() {
             <Card><CardContent className="py-12 text-center text-muted-foreground">No hay alertas de stock</CardContent></Card>
           ) : (
             <div className="space-y-6">
-              {depleted.length > 0 && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar productos..."
+                  className="pl-10"
+                  value={alertSearch}
+                  onChange={(e) => setAlertSearch(e.target.value)}
+                />
+              </div>
+              {filteredDepleted.length > 0 && (
                 <div>
                   <h3 className="mb-2 text-sm font-medium text-destructive">Productos Agotados</h3>
-                  <DataTable columns={alertColumns} data={depleted} isLoading={alertsLoading} emptyIcon={AlertTriangle} emptyTitle="No hay productos agotados" keyExtractor={(i) => i.id} />
+                  <DataTable columns={alertColumns} data={filteredDepleted} isLoading={alertsLoading} emptyIcon={AlertTriangle} emptyTitle="No hay productos agotados" keyExtractor={(i) => i.id} />
                 </div>
               )}
-              {alerts.length > 0 && (
+              {filteredAlerts.length > 0 && (
                 <div>
                   <h3 className="mb-2 text-sm font-medium text-amber-600">Productos con Stock Bajo</h3>
-                  <DataTable columns={alertColumns} data={alerts} isLoading={alertsLoading} emptyIcon={AlertTriangle} emptyTitle="No hay productos con stock bajo" keyExtractor={(i) => i.id} />
+                  <DataTable columns={alertColumns} data={filteredAlerts} isLoading={alertsLoading} emptyIcon={AlertTriangle} emptyTitle="No hay productos con stock bajo" keyExtractor={(i) => i.id} />
                 </div>
               )}
             </div>
@@ -359,14 +394,13 @@ export function InventarioPage() {
 
         <TabsContent value="movements" className="mt-4">
           <div className="mb-4">
-            <Select value={selectedProductId} onValueChange={(v) => setSelectedProductId(v ?? '')}>
-              <SelectTrigger className="w-72"><SelectValue placeholder="Selecciona un producto para ver sus movimientos" /></SelectTrigger>
-              <SelectContent>
-                {products.filter(p => p.status === 'ACTIVO').map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.name} ({p.codigo})</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableSelect
+              options={products.filter(p => p.status === 'ACTIVO').map(p => ({ value: p.id, label: `${p.name} (${p.codigo})` }))}
+              value={selectedProductId}
+              onValueChange={(v) => setSelectedProductId(v)}
+              placeholder="Selecciona un producto para ver sus movimientos"
+              notFound="No se encontraron productos"
+            />
           </div>
           {selectedProductId ? (
             <DataTable
@@ -391,12 +425,14 @@ export function InventarioPage() {
             <form onSubmit={movementForm.handleSubmit(onMovementSubmit)} className="flex flex-col gap-4">
               <FormField control={movementForm.control} name="productId" render={({ field }) => (
                 <FormItem><FormLabel>Producto</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona un producto" /></SelectTrigger>
-                    <SelectContent>
-                      {products.filter(p => p.status === 'ACTIVO').map((p) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.codigo})</SelectItem>)}
-                    </SelectContent>
-                  </Select><FormMessage />
+                  <SearchableSelect
+                    options={products.filter(p => p.status === 'ACTIVO').map(p => ({ value: p.id, label: `${p.name} (${p.codigo})` }))}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Selecciona un producto"
+                    notFound="No se encontraron productos"
+                  />
+                  <FormMessage />
                 </FormItem>
               )} />
               <FormField control={movementForm.control} name="quantity" render={({ field }) => (
@@ -421,12 +457,14 @@ export function InventarioPage() {
             <form onSubmit={adjustForm.handleSubmit(onAdjustSubmit)} className="flex flex-col gap-4">
               <FormField control={adjustForm.control} name="productId" render={({ field }) => (
                 <FormItem><FormLabel>Producto</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona un producto" /></SelectTrigger>
-                    <SelectContent>
-                      {products.filter(p => p.status === 'ACTIVO').map((p) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.codigo})</SelectItem>)}
-                    </SelectContent>
-                  </Select><FormMessage />
+                  <SearchableSelect
+                    options={products.filter(p => p.status === 'ACTIVO').map(p => ({ value: p.id, label: `${p.name} (${p.codigo})` }))}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Selecciona un producto"
+                    notFound="No se encontraron productos"
+                  />
+                  <FormMessage />
                 </FormItem>
               )} />
               <FormField control={adjustForm.control} name="adjustmentType" render={({ field }) => (
@@ -465,12 +503,14 @@ export function InventarioPage() {
             <form onSubmit={initForm.handleSubmit((data) => initializeMutation.mutate(data))} className="flex flex-col gap-4">
               <FormField control={initForm.control} name="productId" render={({ field }) => (
                 <FormItem><FormLabel>Producto</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona un producto" /></SelectTrigger>
-                    <SelectContent>
-                      {products.filter(p => p.status === 'ACTIVO').map((p) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.codigo})</SelectItem>)}
-                    </SelectContent>
-                  </Select><FormMessage />
+                  <SearchableSelect
+                    options={products.filter(p => p.status === 'ACTIVO').map(p => ({ value: p.id, label: `${p.name} (${p.codigo})` }))}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Selecciona un producto"
+                    notFound="No se encontraron productos"
+                  />
+                  <FormMessage />
                 </FormItem>
               )} />
               <FormField control={initForm.control} name="initialStock" render={({ field }) => (

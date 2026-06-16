@@ -21,12 +21,10 @@ import {
 import {
   Form, FormField, FormItem, FormLabel, FormControl, FormMessage,
 } from '@/components/ui/form'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { SeoHead } from '@/components/shared/seo-head'
 import { noHTML } from '@/lib/validations'
+import { SearchableSelect } from '@/components/shared/searchable-select'
 
 const productSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').refine(noHTML),
@@ -257,12 +255,14 @@ export function ProductosPage() {
               </div>
               <FormField control={form.control} name="categoryId" render={({ field }) => (
                 <FormItem><FormLabel>Categoría</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona categoría" /></SelectTrigger>
-                    <SelectContent>
-                      {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select><FormMessage />
+                  <SearchableSelect
+                    options={categories.map(c => ({ value: c.id, label: c.name }))}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Selecciona categoría"
+                    notFound="No se encontraron categorías"
+                  />
+                  <FormMessage />
                 </FormItem>
               )} />
               <FormField control={form.control} name="description" render={({ field }) => (
