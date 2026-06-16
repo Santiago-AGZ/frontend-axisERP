@@ -1,9 +1,9 @@
-import { useState } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Lock, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react'
+import { Lock, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -47,8 +47,6 @@ function extractRecoveryToken(): string {
 
 export function ResetPasswordPage() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-
   const [token] = useState(extractRecoveryToken)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -59,6 +57,16 @@ export function ResetPasswordPage() {
     resolver: zodResolver(resetSchema),
     defaultValues: { password: '', confirmPassword: '' },
   })
+
+  const pwd = form.watch('password')
+  const checks = {
+    min: pwd.length >= 8,
+    upper: /[A-Z]/.test(pwd),
+    lower: /[a-z]/.test(pwd),
+    digit: /[0-9]/.test(pwd),
+    special: /[@#$%^&*!]/.test(pwd),
+    noSpace: /^\S*$/.test(pwd),
+  }
 
   if (!token) {
     return (
@@ -164,9 +172,21 @@ export function ResetPasswordPage() {
                         </button>
                       </div>
                     </FormControl>
-                    <FormDescription>
-                      Mínimo 8 caracteres, incluye mayúscula, minúscula, número y carácter especial (@#$%^&*!)
-                    </FormDescription>
+                    <div className="space-y-1 pt-1">
+                      {[
+                        { label: 'Mínimo 8 caracteres', ok: checks.min },
+                        { label: 'Una mayúscula', ok: checks.upper },
+                        { label: 'Una minúscula', ok: checks.lower },
+                        { label: 'Un número', ok: checks.digit },
+                        { label: 'Un carácter especial (@#$%^&*!)', ok: checks.special },
+                        { label: 'Sin espacios', ok: checks.noSpace },
+                      ].map((r) => (
+                        <div key={r.label} className={`flex items-center gap-1.5 text-xs ${r.ok ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+                          {r.ok ? <CheckCircle2 className="size-3 shrink-0" /> : <XCircle className="size-3 shrink-0" />}
+                          <span>{r.label}</span>
+                        </div>
+                      ))}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
