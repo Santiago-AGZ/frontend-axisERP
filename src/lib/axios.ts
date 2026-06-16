@@ -107,6 +107,15 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as typeof error.config & { _retry?: boolean }
 
+    if (error.response?.status === 403) {
+      const body = error.response.data as { message?: string } | undefined
+      if (body?.message?.toLowerCase().includes('inactivo') || body?.message?.toLowerCase().includes('bloqueado')) {
+        clearAuthTokens()
+        redirectToLogin()
+      }
+      return Promise.reject(error)
+    }
+
     if (error.response?.status !== 401 || originalRequest?._retry) {
       return Promise.reject(error)
     }
