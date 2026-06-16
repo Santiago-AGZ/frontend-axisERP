@@ -20,9 +20,6 @@ import {
 import {
   Form, FormField, FormItem, FormLabel, FormMessage,
 } from '@/components/ui/form'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useAuthStore } from '@/stores/auth'
 import { statusBadge } from '@/lib/labels'

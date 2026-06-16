@@ -23,9 +23,6 @@ import {
 import {
   Form, FormField, FormItem, FormLabel, FormMessage,
 } from '@/components/ui/form'
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { statusBadge } from '@/lib/labels'
 import { formatDate, formatDateTime, formatCurrency } from '@/lib/format'
