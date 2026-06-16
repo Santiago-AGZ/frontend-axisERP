@@ -3,9 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { AxiosError } from 'axios'
+import { extractApiErrorMessage } from '@/lib/axios'
 import { Plus, Eye, Ban, Trash2, ShoppingCart, CheckCircle2, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuthStore } from '@/stores/auth'
 import { salesService, type SaleResponse } from '@/services/sales'
 import { catalogService } from '@/services/catalog'
 import { queryKeys } from '@/lib/query-keys'
@@ -14,7 +15,7 @@ import { DataTable, type Column } from '@/components/shared/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import type { ApiResponse } from '@/types/api'
+
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
@@ -25,36 +26,30 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { statusBadge } from '@/lib/labels'
+import { noHTML } from '@/lib/validations'
 
-type CreateSaleValues = z.infer<typeof createSaleSchema>
-
-const noHTML = (v: string) => !/[<>&"']/.test(v)
 const saleItemSchema = z.object({
   productId: z.string().min(1).refine(noHTML),
   productName: z.string().min(1).refine(noHTML),
   quantity: z.number().min(1),
-  unitPrice: z.number().min(0.01),
-  discount: z.number().min(0),
+  unitPrice: z.number().min(0.01, 'El precio debe ser mayor a 0'),
 })
 
 const createSaleSchema = z.object({
   customerId: z.string().min(1, 'El cliente es requerido').refine(noHTML),
   items: z.array(saleItemSchema).min(1, 'Agrega al menos un producto'),
-  discount: z.number().min(0).max(30),
+  discount: z.number().min(0, 'El descuento no puede ser negativo'), // max validated at submit
   notes: z.string().refine(noHTML).optional(),
 })
 
-  const statusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  CONFIRMADA: 'outline',
-  PAGADA: 'default',
-  ANULADA: 'destructive',
-  BORRADOR: 'secondary',
-  PENDIENTE: 'outline',
-}
+type CreateSaleValues = z.infer<typeof createSaleSchema>
 
 export function VentasPage() {
   const qc = useQueryClient()
-  const isAdmin = true
+  const userRole = useAuthStore((s) => s.user?.role)
+  const isAdmin = userRole === 'ADMIN'
+  const maxDiscount = isAdmin ? 100 : 30
   const [page, setPage] = useState(1)
   const [open, setOpen] = useState(false)
   const [viewSale, setViewSale] = useState<SaleResponse | null>(null)
@@ -78,6 +73,7 @@ export function VentasPage() {
 
   const customers = customersData?.data ?? []
   const products = productsData?.data ?? []
+  const customerMap = new Map(customers.map(c => [c.id, c.name]))
 
   const form = useForm<CreateSaleValues>({
     resolver: zodResolver(createSaleSchema),
@@ -93,12 +89,17 @@ export function VentasPage() {
   const total = subtotal - discountAmount + iva
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateSaleValues) => salesService.createSale({
-      customerId: data.customerId,
-      items: data.items.map(i => ({ productId: i.productId, productName: i.productName, quantity: i.quantity, unitPrice: i.unitPrice, discount: i.discount || undefined })),
-      discount: data.discount || undefined,
-      notes: data.notes || undefined,
-    }),
+    mutationFn: (data: CreateSaleValues) => {
+      if ((data.discount ?? 0) > maxDiscount) {
+        throw new Error(`El descuento máximo es ${maxDiscount}%`)
+      }
+      return salesService.createSale({
+        customerId: data.customerId,
+        items: data.items.map(i => ({ productId: i.productId, productName: i.productName, quantity: i.quantity, unitPrice: i.unitPrice })),
+        discount: data.discount || undefined,
+        notes: data.notes || undefined,
+      })
+    },
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: queryKeys.sales.sales.all })
       qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
@@ -108,8 +109,7 @@ export function VentasPage() {
       form.reset()
     },
     onError: (err) => {
-      const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'No se pudo crear la venta'
-      toast.error(msg)
+      toast.error(extractApiErrorMessage(err) ?? 'No se pudo crear la venta')
     },
   })
 
@@ -124,8 +124,12 @@ export function VentasPage() {
       toast.success('Venta confirmada')
     },
     onError: (err) => {
-      const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'Error al confirmar venta'
-      toast.error(msg)
+      const backendMsg = extractApiErrorMessage(err)
+      if (backendMsg?.includes('Inventario no encontrado')) {
+        toast.error('Inventario no inicializado. Inicialice el inventario del producto antes de confirmar la venta.')
+      } else {
+        toast.error(backendMsg ?? 'Error al confirmar venta')
+      }
     },
   })
 
@@ -140,8 +144,7 @@ export function VentasPage() {
       toast.success('Pago registrado')
     },
     onError: (err) => {
-      const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'Error al registrar pago'
-      toast.error(msg)
+      toast.error(extractApiErrorMessage(err) ?? 'Error al registrar pago')
     },
   })
 
@@ -158,15 +161,14 @@ export function VentasPage() {
       setVoidingId(null)
     },
     onError: (err) => {
-      const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'Error al anular venta'
-      toast.error(msg)
+      toast.error(extractApiErrorMessage(err) ?? 'Error al anular venta')
     },
   })
 
   function addProduct(productId: string) {
     const product = products.find(p => p.id === productId)
     if (product) {
-      append({ productId: product.id, productName: product.name, quantity: 1, unitPrice: product.salePrice, discount: 0 })
+      append({ productId: product.id, productName: product.name, quantity: 1, unitPrice: product.salePrice })
     }
   }
 
@@ -191,7 +193,7 @@ export function VentasPage() {
           <Button variant="ghost" size="icon" className="size-8" aria-label="Ver detalle" onClick={() => setViewSale(s)}>
             <Eye className="size-4" />
           </Button>
-          {s.status === 'PENDIENTE' && (
+          {(s.status === 'BORRADOR' || s.status === 'PENDIENTE') && (
             <Button variant="outline" size="sm" onClick={() => confirmMutation.mutate(s.id)} disabled={confirmMutation.isPending}>
               <CheckCircle2 className="mr-1 size-3" />Confirmar
             </Button>
@@ -201,7 +203,7 @@ export function VentasPage() {
               <CreditCard className="mr-1 size-3" />Cobrar
             </Button>
           )}
-          {isAdmin && s.status !== 'ANULADA' && s.status !== 'PAGADA' && (
+          {isAdmin && s.status !== 'BORRADOR' && s.status !== 'ANULADA' && s.status !== 'PAGADA' && (
             <Button variant="ghost" size="icon" className="size-8 text-destructive" aria-label="Anular venta" onClick={() => { setVoidingId(s.id); setVoidOpen(true) }}>
               <Ban className="size-4" />
             </Button>
@@ -258,7 +260,7 @@ export function VentasPage() {
               <Separator />
               <div className="flex items-center justify-between">
                 <FormLabel>Items</FormLabel>
-                <Select onValueChange={(v: any) => { if (v) addProduct(v) }}>
+                <Select onValueChange={(v) => { if (v) addProduct(v as string) }}>
                   <SelectTrigger className="w-64"><SelectValue placeholder="+ Agregar producto" /></SelectTrigger>
                   <SelectContent>
                     {products.filter(p => p.status === 'ACTIVO').map((p) => <SelectItem key={p.id} value={p.id}>{p.name} - ${p.salePrice}</SelectItem>)}
@@ -311,6 +313,7 @@ export function VentasPage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><span className="text-muted-foreground">Factura:</span> {viewSale.saleNumber}</div>
                 <div><span className="text-muted-foreground">Estado:</span> {viewSale.status}</div>
+                <div><span className="text-muted-foreground">Cliente:</span> {customerMap.get(viewSale.customerId) ?? '—'}</div>
                 <div><span className="text-muted-foreground">Fecha:</span> {new Date(viewSale.createdAt).toLocaleString()}</div>
               </div>
               <Separator />
@@ -333,7 +336,7 @@ export function VentasPage() {
               </table>
               <div className="flex justify-end font-bold text-base">Total: ${viewSale.total.toLocaleString()}</div>
               <div className="flex justify-end gap-2">
-                {viewSale.status === 'PENDIENTE' && (
+                {(viewSale.status === 'BORRADOR' || viewSale.status === 'PENDIENTE') && (
                   <Button size="sm" onClick={() => confirmMutation.mutate(viewSale.id)} disabled={confirmMutation.isPending}>
                     <CheckCircle2 className="mr-2 size-4" />Confirmar Venta
                   </Button>

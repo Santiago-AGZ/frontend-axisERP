@@ -32,8 +32,9 @@ import { ErrorState } from '@/components/shared/error-state'
 import { SeoHead } from '@/components/shared/seo-head'
 import { useAuthStore } from '@/stores/auth'
 import { movementLabel, movementBadgeVariant } from '@/lib/labels'
+import { noHTML } from '@/lib/validations'
+import { extractApiErrorMessage } from '@/lib/axios'
 
-const noHTML = (v: string) => !/[<>&"']/.test(v)
 const movementSchema = z.object({
   productId: z.string().min(1, 'Selecciona un producto').refine(noHTML),
   quantity: z.number().min(1, 'La cantidad debe ser mayor a 0'),
@@ -76,6 +77,7 @@ export function InventarioPage() {
   const [adjustOpen, setAdjustOpen] = useState(false)
   const [initOpen, setInitOpen] = useState(false)
   const [reverseOpen, setReverseOpen] = useState(false)
+  const [reversingMovement, setReversingMovement] = useState<MovementResponse | null>(null)
   const [selectedProductId, setSelectedProductId] = useState('')
 
   const { data: inventoryData, isLoading: invLoading, isError, refetch } = useQuery({
@@ -133,25 +135,25 @@ export function InventarioPage() {
   const entryMutation = useMutation({
     mutationFn: (data: MovementValues) => inventoryService.registerEntry(data.productId, { quantity: data.quantity, notes: data.notes || undefined }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.inventory.all }); qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard }); toast.success('Entrada registrada'); closeMovement() },
-    onError: () => toast.error('Error al registrar entrada'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al registrar entrada'),
   })
 
   const exitMutation = useMutation({
     mutationFn: (data: MovementValues) => inventoryService.registerExit(data.productId, { quantity: data.quantity, notes: data.notes || undefined }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.inventory.all }); qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard }); toast.success('Salida registrada'); closeMovement() },
-    onError: () => toast.error('Error al registrar salida'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al registrar salida'),
   })
 
   const returnMutation = useMutation({
     mutationFn: (data: MovementValues) => inventoryService.registerReturn(data.productId, { quantity: data.quantity, notes: data.notes || undefined }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.inventory.all }); qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard }); toast.success('Devolución registrada'); closeMovement() },
-    onError: () => toast.error('Error al registrar devolución'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al registrar devolución'),
   })
 
   const adjustMutation = useMutation({
     mutationFn: (data: AdjustValues) => inventoryService.adjust(data.productId, { adjustmentType: data.adjustmentType, quantity: data.quantity, justification: data.justification, notes: data.notes || undefined }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: queryKeys.inventory.all }); qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard }); toast.success('Ajuste registrado'); setAdjustOpen(false); adjustForm.reset() },
-    onError: () => toast.error('Error al registrar ajuste'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al registrar ajuste'),
   })
 
   const initializeMutation = useMutation({
@@ -163,7 +165,7 @@ export function InventarioPage() {
       setInitOpen(false)
       initForm.reset()
     },
-    onError: () => toast.error('Error al inicializar inventario'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al inicializar inventario'),
   })
 
   const reverseMutation = useMutation({
@@ -175,7 +177,7 @@ export function InventarioPage() {
       setReverseOpen(false)
       reverseForm.reset()
     },
-    onError: () => toast.error('Error al revertir movimiento'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al revertir movimiento'),
   })
 
   function closeMovement() {
@@ -256,7 +258,7 @@ export function InventarioPage() {
       header: '', className: 'text-right',
       accessor: (m) => (
         canReverse ? (
-        <Button variant="ghost" size="icon" className="size-8" aria-label="Revertir" onClick={() => { reverseForm.setValue('movementId', m.id); reverseForm.setValue('justification', ''); setReverseOpen(true) }}>
+        <Button variant="ghost" size="icon" className="size-8" aria-label="Revertir" onClick={() => { setReversingMovement(m); reverseForm.setValue('movementId', m.id); reverseForm.setValue('justification', ''); setReverseOpen(true) }}>
           <RotateCcw className="size-4" />
         </Button>
         ) : null
@@ -492,13 +494,31 @@ export function InventarioPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={reverseOpen} onOpenChange={(o) => { if (!o) { setReverseOpen(false); reverseForm.reset() }}}>
+      <Dialog open={reverseOpen} onOpenChange={(o) => { if (!o) { setReverseOpen(false); setReversingMovement(null); reverseForm.reset() }}}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Reversar Movimiento</DialogTitle><DialogDescription>Ingresa el ID del movimiento y la justificación para revertirlo</DialogDescription></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Reversar Movimiento</DialogTitle>
+            <DialogDescription>
+              {reversingMovement
+                ? `Vas a revertir un movimiento de tipo "${movementLabel[reversingMovement.movementType] ?? reversingMovement.movementType}" con cantidad ${reversingMovement.quantity}.`
+                : 'Ingresa el ID del movimiento y la justificación para revertirlo.'}
+            </DialogDescription>
+          </DialogHeader>
           <Form {...reverseForm}>
             <form onSubmit={reverseForm.handleSubmit((data) => reverseMutation.mutate(data))} className="flex flex-col gap-4">
               <FormField control={reverseForm.control} name="movementId" render={({ field }) => (
-                <FormItem><FormLabel>ID del Movimiento</FormLabel><FormControl><Input {...field} placeholder="Ingresa el ID del movimiento" /></FormControl><FormMessage /></FormItem>
+                <FormItem>
+                  <FormLabel>ID del Movimiento</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      readOnly={!!reversingMovement}
+                      placeholder="Ingresa el ID del movimiento"
+                      className={reversingMovement ? 'bg-muted font-mono text-xs' : ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )} />
               <FormField control={reverseForm.control} name="justification" render={({ field }) => (
                 <FormItem><FormLabel>Justificación</FormLabel><FormControl><Textarea {...field} placeholder="Motivo de la reversión" /></FormControl><FormMessage /></FormItem>

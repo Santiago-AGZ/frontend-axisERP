@@ -25,7 +25,7 @@ export interface SupplierResponse {
   phone?: string
   email?: string
   address?: string
-  status: 'ACTIVO' | 'INACTIVO'
+  status: 'ACTIVO' | 'INACTIVO' | 'ELIMINADO'
   createdAt: string
   updatedAt: string
 }
@@ -56,7 +56,7 @@ export interface PurchaseResponse {
   id: string
   supplierId: string
   purchaseNumber: string
-  status: 'BORRADOR' | 'PENDIENTE' | 'RECIBIDA' | 'PAGADA' | 'CANCELADA'
+  status: 'BORRADOR' | 'ENVIADA' | 'PENDIENTE' | 'APROBADA' | 'RECIBIDA' | 'PAGADA' | 'CANCELADA'
   items: PurchaseItemResponse[]
   subtotal: number
   tax: number
@@ -116,9 +116,7 @@ export const purchaseService = {
   },
 
   updatePurchaseStatus: async (id: string, status: string) => {
-    const response = await api.patch<ApiResponse<PurchaseResponse>>(`/purchases/${id}/status`, undefined, {
-      params: { status },
-    })
+    const response = await api.patch<ApiResponse<PurchaseResponse>>(`/purchases/${id}/status`, null, { params: { status } })
     return response.data.data
   },
 

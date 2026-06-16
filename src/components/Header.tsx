@@ -1,14 +1,9 @@
 import { LogOut, Menu } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
+import { cn } from '@/lib/utils'
+import { roleTextColors } from '@/lib/labels'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
-
-const roleColors: Record<string, string> = {
-  ADMIN: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  VENDEDOR: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  INVENTARIO: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-}
 
 function getInitials(name: string): string {
   return name
@@ -27,36 +22,33 @@ export function Header({ onToggleSidebar }: HeaderProps) {
   const { user, logout } = useAuthStore()
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-card px-4 sm:px-6">
+    <header className="flex h-14 items-center justify-between border-b bg-card px-4 sm:px-6">
       <Button
         variant="ghost"
         size="icon"
         className="shrink-0 lg:hidden"
         onClick={onToggleSidebar}
-        aria-label="Abrir menu"
+        aria-label="Abrir menú"
       >
-        <Menu className="size-5" />
+        <Menu className="size-4" />
       </Button>
       <div className="hidden lg:block" />
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-3">
-          <Avatar className="size-8">
-            <AvatarFallback className="bg-primary/10 text-xs font-medium text-primary">
-              {user?.name ? getInitials(user.name) : 'U'}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col">
-            <span className="text-sm font-medium leading-tight">{user?.name}</span>
-            {user?.role && (
-              <Badge variant="outline" className={`mt-0.5 h-5 px-1.5 text-[10px] font-medium uppercase leading-none ${roleColors[user.role] ?? ''}`}>
-                {user.role}
-              </Badge>
-            )}
-          </div>
+      <div className="flex items-center gap-3">
+        <Avatar className="size-7">
+          <AvatarFallback className="bg-primary/10 text-[11px] font-medium text-primary">
+            {user?.name ? getInitials(user.name) : 'U'}
+          </AvatarFallback>
+        </Avatar>
+        <div className="hidden sm:flex flex-col">
+          <span className="text-[13px] font-medium leading-tight">{user?.name}</span>
+          {user?.role && (
+            <span className={cn('text-[10px] font-medium uppercase leading-none', roleTextColors[user.role] ?? '')}>
+              {user.role}
+            </span>
+          )}
         </div>
-        <Button variant="ghost" size="sm" onClick={logout} className="gap-2 text-muted-foreground hover:text-foreground">
-          <LogOut className="size-4" />
-          <span className="hidden sm:inline">Salir</span>
+        <Button variant="ghost" size="icon-sm" onClick={logout} aria-label="Cerrar sesión" className="text-muted-foreground hover:text-foreground">
+          <LogOut className="size-3.5" />
         </Button>
       </div>
     </header>

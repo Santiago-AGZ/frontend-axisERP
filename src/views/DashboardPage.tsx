@@ -1,18 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   DollarSign, ShoppingCart, AlertTriangle, Users, Package, PackageSearch,
+  ArrowRight,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { MetricCard } from '@/components/shared/metric-card'
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table'
 import { ErrorState } from '@/components/shared/error-state'
 import { SeoHead } from '@/components/shared/seo-head'
 import { queryKeys } from '@/lib/query-keys'
 import { formatCurrency } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth'
-import { reportService } from '@/services/report'
+import { reportService, type DashboardData } from '@/services/report'
 import { NavLink } from 'react-router-dom'
+import { statusBadge } from '@/lib/labels'
+import { cn } from '@/lib/utils'
 
 function timeAgo(dateStr: string): string {
   const diffMs = Date.now() - new Date(dateStr).getTime()
@@ -26,58 +30,128 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString()
 }
 
-const statusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  CONFIRMADA: 'outline', PAGADA: 'default', ANULADA: 'destructive',
+function KpiSkeleton() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="animate-fade-in" style={{ animationDelay: `${i * 60}ms` } as React.CSSProperties}>
+          <div className="rounded-xl border bg-card p-5">
+            <Skeleton className="skeleton-shimmer mb-3 size-8 rounded-lg" />
+            <Skeleton className="skeleton-shimmer mb-1 h-7 w-28 rounded-md" />
+            <Skeleton className="skeleton-shimmer h-3 w-16 rounded-md" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 }
 
-function KpiSkeleton() {
-  return <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    {Array.from({ length: 4 }).map((_, i) => (
-      <Card key={i}><CardContent className="pt-6"><Skeleton className="mb-2 h-4 w-24" /><Skeleton className="h-8 w-20" /></CardContent></Card>
-    ))}
-  </div>
+function QuickLink({ to, icon: Icon, title, description, iconColor }: {
+  to: string
+  icon: typeof ShoppingCart
+  title: string
+  description: string
+  iconColor: string
+}) {
+  return (
+    <NavLink
+      to={to}
+      className="group relative overflow-hidden rounded-xl border bg-card p-5 transition-all duration-200 hover:border-primary/20 hover:-translate-y-0.5"
+    >
+      <div className={cn('mb-3 inline-flex rounded-lg p-2.5', iconColor.replace('text-', 'bg-').replace('500', '100').replace('primary', 'primary/10 dark:bg-primary/20'))}>
+        <Icon className={cn('size-5', iconColor)} />
+      </div>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+      <ArrowRight className="absolute right-4 top-4 size-3.5 text-muted-foreground/30 transition-all group-hover:translate-x-0.5 group-hover:text-foreground/50" />
+    </NavLink>
+  )
 }
 
 function VendorDashboard() {
+  const links = [
+    { to: '/ventas', icon: ShoppingCart, title: 'Nueva Venta', description: 'Registra una venta en el sistema', iconColor: 'text-primary' },
+    { to: '/clientes', icon: Users, title: 'Clientes', description: 'Administra tus clientes', iconColor: 'text-blue-500' },
+    { to: '/productos', icon: Package, title: 'Productos', description: 'Consulta el catálogo', iconColor: 'text-emerald-500' },
+  ]
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <NavLink to="/ventas" className="block rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
-        <ShoppingCart className="mb-3 size-8 text-primary" />
-        <h3 className="font-semibold">Nueva Venta</h3>
-        <p className="mt-1 text-sm text-muted-foreground">Registra una venta en el sistema</p>
-      </NavLink>
-      <NavLink to="/clientes" className="block rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
-        <Users className="mb-3 size-8 text-blue-500" />
-        <h3 className="font-semibold">Clientes</h3>
-        <p className="mt-1 text-sm text-muted-foreground">Administra tus clientes</p>
-      </NavLink>
-      <NavLink to="/productos" className="block rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
-        <Package className="mb-3 size-8 text-emerald-500" />
-        <h3 className="font-semibold">Productos</h3>
-        <p className="mt-1 text-sm text-muted-foreground">Consulta el catálogo</p>
-      </NavLink>
+    <div className="flex flex-col gap-6">
+      <SeoHead title="Dashboard" description="Panel de ventas - AxisERP" />
+      <div className="animate-fade-in" style={{ animationDelay: '0ms' } as React.CSSProperties}>
+        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Panel de ventas</p>
+      </div>
+      <div className="grid animate-stagger gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {links.map((link, i) => (
+          <div key={link.to} className="animate-fade-in" style={{ animationDelay: `${80 + i * 60}ms` } as React.CSSProperties}>
+            <QuickLink {...link} />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
 function InventarioDashboard() {
+  const links = [
+    { to: '/inventario', icon: PackageSearch, title: 'Inventario', description: 'Control de existencias', iconColor: 'text-primary' },
+    { to: '/compras', icon: ShoppingCart, title: 'Compras', description: 'Órdenes de compra', iconColor: 'text-amber-500' },
+    { to: '/productos', icon: Package, title: 'Productos', description: 'Catálogo de productos', iconColor: 'text-emerald-500' },
+  ]
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <NavLink to="/inventario" className="block rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
-        <PackageSearch className="mb-3 size-8 text-primary" />
-        <h3 className="font-semibold">Inventario</h3>
-        <p className="mt-1 text-sm text-muted-foreground">Control de existencias</p>
-      </NavLink>
-      <NavLink to="/compras" className="block rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
-        <ShoppingCart className="mb-3 size-8 text-amber-500" />
-        <h3 className="font-semibold">Compras</h3>
-        <p className="mt-1 text-sm text-muted-foreground">Órdenes de compra</p>
-      </NavLink>
-      <NavLink to="/productos" className="block rounded-xl border bg-card p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
-        <Package className="mb-3 size-8 text-emerald-500" />
-        <h3 className="font-semibold">Productos</h3>
-        <p className="mt-1 text-sm text-muted-foreground">Catálogo de productos</p>
-      </NavLink>
+    <div className="flex flex-col gap-6">
+      <SeoHead title="Dashboard" description="Panel de inventario - AxisERP" />
+      <div className="animate-fade-in" style={{ animationDelay: '0ms' } as React.CSSProperties}>
+        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Panel de inventario</p>
+      </div>
+      <div className="grid animate-stagger gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {links.map((link, i) => (
+          <div key={link.to} className="animate-fade-in" style={{ animationDelay: `${80 + i * 60}ms` } as React.CSSProperties}>
+            <QuickLink {...link} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function RecentSalesTable({ sales }: { sales: DashboardData['recentSales'] }) {
+  return (
+    <div className="overflow-hidden rounded-xl border bg-card">
+      <div className="px-5 pt-4 pb-1">
+        <h3 className="text-sm font-semibold">Ventas Recientes</h3>
+      </div>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader className="sticky top-0 bg-card z-10">
+            <TableRow>
+              <TableHead className="h-9 pl-5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Folio</TableHead>
+              <TableHead className="h-9 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Fecha</TableHead>
+              <TableHead className="h-9 text-right text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Total</TableHead>
+              <TableHead className="h-9 pr-5 text-right text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Estado</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sales.slice(0, 8).map((sale, i) => (
+              <TableRow
+                key={sale.id}
+                className="animate-fade-in border-b border-border"
+                style={{ animationDelay: `${i * 40}ms` } as React.CSSProperties}
+              >
+                <TableCell className="pl-5 font-medium">{sale.saleNumber}</TableCell>
+                <TableCell className="text-muted-foreground">{timeAgo(sale.createdAt)}</TableCell>
+                <TableCell className="text-right font-semibold tabular-nums">{formatCurrency(sale.total)}</TableCell>
+                <TableCell className="text-right pr-5">
+                  <Badge variant={statusBadge[sale.status] ?? 'outline'} className="text-[10px] px-2 py-0.5">
+                    {sale.status}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }
@@ -96,13 +170,7 @@ export function DashboardPage() {
 
   if (!isAdmin) {
     return (
-      <div className="flex flex-col gap-6" role="region" aria-label="Panel de usuario">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            {user?.role === 'VENDEDOR' ? 'Panel de ventas' : 'Panel de inventario'}
-          </p>
-        </div>
+      <div role="region" aria-label="Panel de usuario">
         {user?.role === 'VENDEDOR' ? <VendorDashboard /> : <InventarioDashboard />}
       </div>
     )
@@ -111,7 +179,10 @@ export function DashboardPage() {
   if (dashboard.isLoading) {
     return (
       <div className="flex flex-col gap-6">
-        <div><h1 className="text-3xl font-bold tracking-tight">Dashboard</h1><p className="text-sm text-muted-foreground">Panel ejecutivo de AxisERP</p></div>
+        <div className="animate-fade-in" style={{ animationDelay: '0ms' } as React.CSSProperties}>
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Panel ejecutivo de AxisERP</p>
+        </div>
         <KpiSkeleton />
       </div>
     )
@@ -120,7 +191,8 @@ export function DashboardPage() {
   if (dashboard.isError) {
     return (
       <div className="flex flex-col gap-6">
-        <div><h1 className="text-3xl font-bold tracking-tight">Dashboard</h1><p className="text-sm text-muted-foreground">Panel ejecutivo de AxisERP</p></div>
+        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Panel ejecutivo de AxisERP</p>
         <ErrorState message="Error al cargar datos del dashboard." onRetry={() => dashboard.refetch()} />
       </div>
     )
@@ -132,36 +204,55 @@ export function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6" role="region" aria-label="Panel de control ejecutivo">
-      <SeoHead title="Dashboard" description="Panel ejecutivo con metricas en tiempo real de ventas, inventario y clientes." />
-      <div><h1 className="text-3xl font-bold tracking-tight">Dashboard</h1><p className="text-sm text-muted-foreground">Panel ejecutivo de AxisERP</p></div>
+      <SeoHead title="Dashboard" description="Panel ejecutivo con métricas en tiempo real de ventas, inventario y clientes." />
+      <div className="animate-fade-in" style={{ animationDelay: '0ms' } as React.CSSProperties}>
+        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Panel ejecutivo de AxisERP</p>
+      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard title="Ingresos Hoy" value={formatCurrency(dashData.todayRevenue)} icon={DollarSign} variant="success" />
-        <MetricCard title="Ventas Pendientes" value={dashData.pendingSalesCount} icon={ShoppingCart} variant="warning" />
-        <MetricCard title="Stock Bajo" value={dashData.lowStockCount} icon={AlertTriangle} variant="danger" />
-        <MetricCard title="Total Clientes" value={dashData.totalCustomers} icon={Users} variant="info" />
+      <div className="grid animate-stagger gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="animate-fade-in" style={{ animationDelay: '60ms' } as React.CSSProperties}>
+          <div className="rounded-xl border bg-card p-5">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-emerald-500/10">
+              <DollarSign className="size-4 text-emerald-400" />
+            </div>
+            <div className="mt-3 text-2xl font-semibold tracking-tight">{formatCurrency(dashData.todayRevenue)}</div>
+            <div className="mt-1 text-[13px] text-muted-foreground">Ingresos Hoy</div>
+          </div>
+        </div>
+        <div className="animate-fade-in" style={{ animationDelay: '120ms' } as React.CSSProperties}>
+          <div className="rounded-xl border bg-card p-5">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-amber-500/10">
+              <ShoppingCart className="size-4 text-amber-400" />
+            </div>
+            <div className="mt-3 text-2xl font-semibold tracking-tight">{dashData.pendingSalesCount}</div>
+            <div className="mt-1 text-[13px] text-muted-foreground">Ventas Pendientes</div>
+          </div>
+        </div>
+        <div className="animate-fade-in" style={{ animationDelay: '180ms' } as React.CSSProperties}>
+          <div className="rounded-xl border bg-card p-5">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-red-500/10">
+              <AlertTriangle className="size-4 text-red-400" />
+            </div>
+            <div className="mt-3 text-2xl font-semibold tracking-tight">{dashData.lowStockCount}</div>
+            <div className="mt-1 text-[13px] text-muted-foreground">Stock Bajo</div>
+          </div>
+        </div>
+        <div className="animate-fade-in" style={{ animationDelay: '240ms' } as React.CSSProperties}>
+          <div className="rounded-xl border bg-card p-5">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
+              <Users className="size-4 text-primary" />
+            </div>
+            <div className="mt-3 text-2xl font-semibold tracking-tight">{dashData.totalCustomers}</div>
+            <div className="mt-1 text-[13px] text-muted-foreground">Total Clientes</div>
+          </div>
+        </div>
       </div>
 
       {dashData.recentSales.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="text-sm font-medium">Ventas Recientes</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {dashData.recentSales.slice(0, 8).map((sale) => (
-                <div key={sale.id} className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50">
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-medium">{sale.saleNumber}</p>
-                    <p className="text-xs text-muted-foreground">{timeAgo(sale.createdAt)}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold">{formatCurrency(sale.total)}</span>
-                    <Badge variant={statusBadge[sale.status] ?? 'outline'}>{sale.status}</Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="animate-fade-in" style={{ animationDelay: '300ms' } as React.CSSProperties}>
+          <RecentSalesTable sales={dashData.recentSales} />
+        </div>
       )}
     </div>
   )

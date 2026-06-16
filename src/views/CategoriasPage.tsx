@@ -25,8 +25,9 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { SeoHead } from '@/components/shared/seo-head'
 import { useAuthStore } from '@/stores/auth'
+import { noHTML } from '@/lib/validations'
+import { extractApiErrorMessage } from '@/lib/axios'
 
-const noHTML = (v: string) => !/[<>&"']/.test(v)
 const categorySchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').refine(noHTML),
   description: z.string().refine(noHTML).optional(),
@@ -79,7 +80,7 @@ export function CategoriasPage() {
       toast.success('Categoría creada')
       setOpen(false)
     },
-    onError: () => toast.error('Error al crear categoría'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al crear categoría'),
   })
 
   const updateMutation = useMutation({
@@ -91,7 +92,7 @@ export function CategoriasPage() {
       toast.success('Categoría actualizada')
       setOpen(false)
     },
-    onError: () => toast.error('Error al actualizar categoría'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al actualizar categoría'),
   })
 
   const deactivateMutation = useMutation({
@@ -101,7 +102,7 @@ export function CategoriasPage() {
       qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Categoría desactivada')
     },
-    onError: () => toast.error('Error al desactivar categoría'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al desactivar categoría'),
   })
 
   const reactivateMutation = useMutation({
@@ -111,7 +112,7 @@ export function CategoriasPage() {
       qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Categoría activada')
     },
-    onError: () => toast.error('Error al activar categoría'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al activar categoría'),
   })
 
   const form = useForm<CategoryValues>({
@@ -211,6 +212,7 @@ export function CategoriasPage() {
           className="pl-10"
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+          aria-label="Buscar categorías"
         />
       </div>
 

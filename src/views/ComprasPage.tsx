@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Plus, Eye, Trash2, FileText, XCircle, PackageCheck } from 'lucide-react'
 import { toast } from 'sonner'
-import { purchaseService, type PurchaseResponse, type PurchaseItemResponse } from '@/services/purchase'
+import { purchaseService, type PurchaseResponse } from '@/services/purchase'
 import { catalogService } from '@/services/catalog'
 import { queryKeys } from '@/lib/query-keys'
 import { PageHeader } from '@/components/shared/page-header'
@@ -24,6 +24,9 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useAuthStore } from '@/stores/auth'
+import { statusBadge } from '@/lib/labels'
+import { noHTML } from '@/lib/validations'
+import { extractApiErrorMessage } from '@/lib/axios'
 
 const orderStatusFlow: Record<string, string> = {
   BORRADOR: 'PENDIENTE',
@@ -31,15 +34,6 @@ const orderStatusFlow: Record<string, string> = {
   RECIBIDA: 'PAGADA',
 }
 
-const statusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  PAGADA: 'default',
-  RECIBIDA: 'default',
-  PENDIENTE: 'outline',
-  BORRADOR: 'secondary',
-  CANCELADA: 'destructive',
-}
-
-const noHTML = (v: string) => !/[<>&"']/.test(v)
 const purchaseItemSchema = z.object({
   productId: z.string().min(1).refine(noHTML),
   productName: z.string().min(1).refine(noHTML),
@@ -64,6 +58,7 @@ export function ComprasPage() {
   const [viewPurchase, setViewPurchase] = useState<PurchaseResponse | null>(null)
   const [receiveOpen, setReceiveOpen] = useState(false)
   const [receivePurchase, setReceivePurchase] = useState<PurchaseResponse | null>(null)
+  const [receiveQtys, setReceiveQtys] = useState<Record<string, number>>({})
   const [cancelOpen, setCancelOpen] = useState(false)
   const [cancelId, setCancelId] = useState<string | null>(null)
 
@@ -108,7 +103,7 @@ export function ComprasPage() {
       setOpen(false)
       form.reset()
     },
-    onError: () => toast.error('Error al crear compra'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al crear compra'),
   })
 
   const statusMutation = useMutation({
@@ -119,7 +114,7 @@ export function ComprasPage() {
       qc.invalidateQueries({ queryKey: queryKeys.reports.dashboard })
       toast.success('Estado actualizado')
     },
-    onError: () => toast.error('Error al cambiar estado'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al cambiar estado'),
   })
 
   const receiveMutation = useMutation({
@@ -132,8 +127,11 @@ export function ComprasPage() {
       toast.success('Compra recibida')
       setReceiveOpen(false)
       setReceivePurchase(null)
+      setReceiveQtys({})
     },
-    onError: () => toast.error('Error al recibir compra'),
+    onError: (err) => {
+      toast.error(extractApiErrorMessage(err) ?? 'Error al recibir compra')
+    },
   })
 
   const cancelMutation = useMutation({
@@ -145,8 +143,12 @@ export function ComprasPage() {
       setCancelOpen(false)
       setCancelId(null)
     },
-    onError: () => toast.error('Error al cancelar compra'),
+    onError: (err) => toast.error(extractApiErrorMessage(err) ?? 'Error al cancelar compra'),
   })
+
+  const updateReceiveQty = useCallback((itemId: string, value: number) => {
+    setReceiveQtys(prev => ({ ...prev, [itemId]: value }))
+  }, [])
 
   function addProduct(productId: string) {
     const product = products.find(p => p.id === productId)
@@ -256,7 +258,7 @@ export function ComprasPage() {
               <Separator />
               <div className="flex items-center justify-between">
                 <FormLabel>Items</FormLabel>
-                <Select onValueChange={(v: any) => { if (v) addProduct(v) }}>
+                <Select onValueChange={(v) => { if (v) addProduct(v as string) }}>
                   <SelectTrigger className="w-64"><SelectValue placeholder="+ Agregar producto" /></SelectTrigger>
                   <SelectContent>
                     {products.filter(p => p.status === 'ACTIVO').map((p) => <SelectItem key={p.id} value={p.id}>{p.name} - ${p.purchasePrice}</SelectItem>)}
@@ -333,23 +335,40 @@ export function ComprasPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={receiveOpen} onOpenChange={(o) => { if (!o) { setReceiveOpen(false); setReceivePurchase(null) }}}>
+      <Dialog open={receiveOpen} onOpenChange={(o) => { if (!o) { setReceiveOpen(false); setReceivePurchase(null); setReceiveQtys({}) }}}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>Recibir Compra</DialogTitle><DialogDescription>Registra la recepción de productos</DialogDescription></DialogHeader>
           {receivePurchase && (
             <div className="flex flex-col gap-4">
               {receivePurchase.items.map((item) => (
-                <ReceiveItemRow key={item.id} item={item} />
+                <div key={item.id} className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-medium">{item.productName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Pedido: {item.quantity} | Recibido: {item.receivedQuantity} | Pendiente: {item.pendingQuantity}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-muted-foreground">Recibir:</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={item.pendingQuantity}
+                      value={receiveQtys[item.id] ?? item.pendingQuantity}
+                      onChange={(e) => updateReceiveQty(item.id, parseInt(e.target.value) || 0)}
+                      className="h-8 w-20 text-right"
+                      aria-label={`Cantidad a recibir de ${item.productName}`}
+                    />
+                  </div>
+                </div>
               ))}
               <DialogFooter>
                 <Button onClick={() => {
-                  const inputs = document.querySelectorAll<HTMLInputElement>('[data-receive-qty]')
-                  const receiveItems = Array.from(inputs).map(input => ({
-                    itemId: input.dataset.receiveQty!,
-                    receivedQuantity: parseInt(input.value) || 0,
-                  })).filter(i => i.receivedQuantity > 0)
-                  if (receiveItems.length === 0) { toast.error('Ingresa al menos una cantidad'); return }
-                  receiveMutation.mutate({ id: receivePurchase.id, items: receiveItems })
+                  const items = Object.entries(receiveQtys)
+                    .map(([itemId, receivedQuantity]) => ({ itemId, receivedQuantity }))
+                    .filter(i => i.receivedQuantity > 0)
+                  if (items.length === 0) { toast.error('Ingresa al menos una cantidad'); return }
+                  receiveMutation.mutate({ id: receivePurchase.id, items })
                 }} disabled={receiveMutation.isPending}>
                   Confirmar Recepción
                 </Button>
@@ -372,26 +391,4 @@ export function ComprasPage() {
   )
 }
 
-function ReceiveItemRow({ item }: { item: PurchaseItemResponse }) {
-  return (
-    <div className="flex items-center justify-between rounded-lg border p-3">
-      <div className="space-y-0.5">
-        <p className="text-sm font-medium">{item.productName}</p>
-        <p className="text-xs text-muted-foreground">
-          Pedido: {item.quantity} | Recibido: {item.receivedQuantity} | Pendiente: {item.pendingQuantity}
-        </p>
-      </div>
-      <div className="flex items-center gap-2">
-        <label className="text-sm text-muted-foreground">Recibir:</label>
-        <Input
-          type="number"
-          min={0}
-          max={item.pendingQuantity}
-          defaultValue={item.pendingQuantity}
-          className="h-8 w-20 text-right"
-          data-receive-qty={item.id}
-        />
-      </div>
-    </div>
-  )
-}
+

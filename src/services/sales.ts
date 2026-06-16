@@ -38,7 +38,6 @@ interface SaleItemRequest {
   productName: string
   quantity: number
   unitPrice: number
-  discount?: number
 }
 
 interface CreateSaleRequest {
@@ -106,7 +105,7 @@ export const salesService = {
     return response.data.data
   },
 
-  listSales: async (params?: { customerId?: string; status?: string; productId?: string; page?: number; size?: number }) => {
+  listSales: async (params?: { customerId?: string; status?: string; productId?: string; search?: string; page?: number; size?: number }) => {
     const response = await api.get<ApiResponse<SaleResponse[]> & { pagination?: PaginationMeta }>('/sales', { params })
     return { data: response.data.data, pagination: response.data.pagination }
   },
@@ -142,4 +141,22 @@ export const salesService = {
   downloadInvoiceCsv: async (saleId: string) => {
     await downloadFromApi(`/invoices/${saleId}/csv`, `factura-${saleId}`, 'csv')
   },
+
+  getAuditLogs: async (params?: { page?: number; size?: number }) => {
+    const response = await api.get<ApiResponse<AuditLogEntry[]> & { pagination?: PaginationMeta }>('/sales/audit-log', { params })
+    return { data: response.data.data, pagination: response.data.pagination }
+  },
+}
+
+export interface AuditLogEntry {
+  id: string
+  timestamp: string
+  userId?: string
+  userName?: string
+  action: string
+  entityType: string
+  entityId?: string
+  details: string
+  ipAddress?: string
+  userAgent?: string
 }

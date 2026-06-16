@@ -1,15 +1,19 @@
 import { useState, useMemo } from 'react'
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { Pagination } from '@/components/ui/pagination'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import { EmptyState } from './empty-state'
 import { ErrorState } from './error-state'
 import type { PaginationMeta } from '@/types/api'
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
 
 export interface Column<T> {
   header: string
@@ -40,12 +44,12 @@ interface DataTableProps<T> {
 
 function TableSkeleton({ columns, rows = 5 }: { columns: Column<unknown>[]; rows?: number }) {
   return (
-    <div className="rounded-md border">
+    <div className="border border-border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
             {columns.map((col) => (
-              <TableHead key={col.header} className={col.className}>
+              <TableHead key={col.header} className={cn(col.className, 'h-11')}>
                 {col.header}
               </TableHead>
             ))}
@@ -56,7 +60,7 @@ function TableSkeleton({ columns, rows = 5 }: { columns: Column<unknown>[]; rows
             <TableRow key={rowIdx}>
               {columns.map((col, colIdx) => (
                 <TableCell key={colIdx} className={col.className}>
-                  <Skeleton className={`h-4 ${colIdx === 0 ? 'w-32' : colIdx === columns.length - 1 ? 'w-20' : 'w-24'}`} />
+                  <Skeleton className={`skeleton-shimmer h-3.5 rounded-md ${colIdx === 0 ? 'w-32' : colIdx === columns.length - 1 ? 'w-20' : 'w-24'}`} />
                 </TableCell>
               ))}
             </TableRow>
@@ -68,9 +72,9 @@ function TableSkeleton({ columns, rows = 5 }: { columns: Column<unknown>[]; rows
 }
 
 function SortIcon({ direction }: { direction: SortDirection | null }) {
-  if (direction === 'asc') return <ArrowUp className="ml-1 size-3 shrink-0" />
-  if (direction === 'desc') return <ArrowDown className="ml-1 size-3 shrink-0" />
-  return <ArrowUpDown className="ml-1 size-3 shrink-0 opacity-30" />
+  if (direction === 'asc') return <ArrowUp className="ml-1 size-3 shrink-0 text-primary" />
+  if (direction === 'desc') return <ArrowDown className="ml-1 size-3 shrink-0 text-primary" />
+  return <ArrowUpDown className="ml-1 size-3 shrink-0 text-muted-foreground/30" />
 }
 
 export function DataTable<T>({
@@ -124,7 +128,7 @@ export function DataTable<T>({
 
   if (sortedData.length === 0) {
     return (
-      <div className="rounded-md border">
+      <div className="border border-border rounded-lg">
         <EmptyState
           icon={emptyIcon as LucideIcon}
           title={emptyTitle}
@@ -137,7 +141,7 @@ export function DataTable<T>({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto rounded-md border">
+      <div className="overflow-hidden border border-border rounded-lg">
         <Table aria-label={ariaLabel}>
           <TableHeader>
             <TableRow>
@@ -160,7 +164,10 @@ export function DataTable<T>({
                       : undefined,
                   } : {})}
                 >
-                  <div className={`flex items-center ${col.sortable ? 'cursor-pointer select-none hover:text-foreground' : ''}`}>
+                  <div className={cn(
+                    'flex items-center gap-0.5',
+                    col.sortable && 'cursor-pointer select-none hover:text-foreground'
+                  )}>
                     {col.header}
                     {col.sortable && (
                       <SortIcon direction={sortColumn === (col.sortKey || col.header.toLowerCase()) ? sortDirection : null} />
@@ -185,16 +192,52 @@ export function DataTable<T>({
       </div>
 
       {pagination && (onPageChange || onPageSizeChange) && (
-        <Pagination
-          page={pagination.page}
-          pageSize={pagination.pageSize}
-          totalRecords={pagination.totalRecords}
-          totalPages={pagination.totalPages}
-          hasNext={pagination.hasNext}
-          hasPrevious={pagination.hasPrevious}
-          onPageChange={onPageChange}
-          onPageSizeChange={onPageSizeChange}
-        />
+        <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="text-[13px]">Página {pagination.page} de {pagination.totalPages}</span>
+            {onPageSizeChange && (
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground/40 mx-1">|</span>
+                <Select
+                  value={String(pagination.pageSize)}
+                  onValueChange={(v) => onPageSizeChange(Number(v))}
+                >
+                  <SelectTrigger className="h-8 w-14 text-[13px]" aria-label="Elementos por página">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 20, 50, 100].map((size) => (
+                      <SelectItem key={size} value={String(size)}>
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon-sm"
+              disabled={!pagination.hasPrevious}
+              onClick={() => onPageChange?.(pagination.page - 1)}
+              aria-label="Página anterior"
+            >
+              <ChevronLeft className="size-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              disabled={!pagination.hasNext}
+              onClick={() => onPageChange?.(pagination.page + 1)}
+              aria-label="Página siguiente"
+            >
+              <ChevronRight className="size-3.5" />
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   )

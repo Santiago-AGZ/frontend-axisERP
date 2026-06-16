@@ -1,56 +1,64 @@
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { authService } from '@/services/auth'
+import { salesService } from '@/services/sales'
 import { queryKeys } from '@/lib/query-keys'
 import { PageHeader } from '@/components/shared/page-header'
 import { DataTable, type Column } from '@/components/shared/data-table'
 import { SeoHead } from '@/components/shared/seo-head'
 import { Badge } from '@/components/ui/badge'
 import { ClipboardList } from 'lucide-react'
-import { actionLabel, entityLabel } from '@/lib/labels'
+import { actionLabel, entityLabel, actionBadge } from '@/lib/labels'
 
-interface AuditEntry {
+interface AuditLogRow {
   id: string
   timestamp: string
+  source: string
   userId?: string
   userName?: string
   action: string
   entityType: string
   entityId?: string
-  detail?: Record<string, unknown>
   ipAddress?: string
   userAgent?: string
 }
 
-const actionBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  LOGIN: 'default',
-  LOGOUT: 'secondary',
-  CREATE: 'default',
-  UPDATE: 'outline',
-  DELETE: 'destructive',
-  DEACTIVATE: 'destructive',
-  REACTIVATE: 'default',
-  PASSWORD_RESET_REQUEST: 'secondary',
-  PASSWORD_RESET_COMPLETE: 'default',
-}
-
 export default function AuditLogPage() {
-  const [page, setPage] = useState(1)
+  const page = 1
 
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: queryKeys.auth.auditLogs.list({ page, size: 20 }),
-    queryFn: () => authService.getAuditLogs({ page, size: 20 }),
+  const authAudit = useQuery({
+    queryKey: queryKeys.auth.auditLogs.list({ page, size: 50 }),
+    queryFn: () => authService.getAuditLogs({ page, size: 50 }),
     staleTime: 30000,
   })
 
-  const logs: AuditEntry[] = data?.data ?? []
-  const pagination = data?.pagination ?? null
+  const salesAudit = useQuery({
+    queryKey: queryKeys.sales.auditLogs.list({ page, size: 50 }),
+    queryFn: () => salesService.getAuditLogs({ page, size: 50 }),
+    staleTime: 30000,
+  })
 
-  const columns: Column<AuditEntry>[] = [
+  const isLoading = authAudit.isLoading || salesAudit.isLoading
+  const isError = authAudit.isError && salesAudit.isError
+
+  const refetch = () => { authAudit.refetch(); salesAudit.refetch() }
+
+  const authLogs: AuditLogRow[] = (authAudit.data?.data ?? []).map(l => ({ id: l.id, timestamp: l.timestamp, userId: l.userId, userName: l.userName, action: l.action, entityType: l.entityType, entityId: l.entityId, ipAddress: l.ipAddress, userAgent: l.userAgent, source: 'Auth' }))
+  const salesLogs: AuditLogRow[] = (salesAudit.data?.data ?? []).map(l => ({ id: l.id, timestamp: l.timestamp, userId: l.userId, userName: l.userName, action: l.action, entityType: l.entityType, entityId: l.entityId, ipAddress: l.ipAddress, userAgent: l.userAgent, source: 'Ventas' }))
+
+  const allLogs = [...authLogs, ...salesLogs]
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+
+  const columns: Column<AuditLogRow>[] = [
     { header: 'Fecha', accessor: (l) => new Date(l.timestamp).toLocaleString() },
-    { header: 'Usuario', accessor: (l) => l.userName || (l.userId ? `Usuario ${l.userId.slice(0, 8)}...` : <span className="text-muted-foreground">—</span>) },
+    { header: 'Servicio', accessor: (l) => <span className="text-xs text-muted-foreground">{l.source}</span>, className: 'w-20' },
+    { header: 'Usuario', accessor: (l) => {
+      const name = l.userName?.trim()
+      if (name) return <span className="font-medium">{name}</span>
+      if (l.userId) return <span className="font-mono text-xs text-muted-foreground">{l.userId.slice(0, 8)}</span>
+      return <span className="text-muted-foreground/50">—</span>
+    } },
     {
-      header: 'Accion',
+      header: 'Acción',
       accessor: (l) => <Badge variant={actionBadge[l.action] ?? 'outline'}>{actionLabel[l.action] ?? l.action}</Badge>,
     },
     { header: 'Entidad', accessor: (l) => entityLabel[l.entityType] ?? l.entityType },
@@ -64,16 +72,14 @@ export default function AuditLogPage() {
 
       <DataTable
         columns={columns}
-        data={logs}
+        data={allLogs}
         isLoading={isLoading}
         isError={isError}
         onRetry={() => refetch()}
-        pagination={pagination ?? undefined}
-        onPageChange={setPage}
         emptyIcon={ClipboardList}
         emptyTitle="No hay registros de auditoria"
         emptyDescription="Los registros apareceran cuando se realicen acciones criticas en el sistema"
-        keyExtractor={(l) => l.id}
+        keyExtractor={(l) => `${l.source}-${l.id}`}
       />
     </div>
   )

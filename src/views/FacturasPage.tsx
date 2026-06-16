@@ -20,14 +20,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
 import { SeoHead } from '@/components/shared/seo-head'
-
-const statusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
-  CONFIRMADA: 'outline',
-  PAGADA: 'default',
-  ANULADA: 'destructive',
-  BORRADOR: 'secondary',
-  PENDIENTE: 'outline',
-}
+import { statusBadge } from '@/lib/labels'
+import { formatCurrency } from '@/lib/format'
 
 export function FacturasPage() {
   const [page, setPage] = useState(1)
@@ -38,7 +32,7 @@ export function FacturasPage() {
 
   const { data: salesData, isLoading, isError, refetch } = useQuery({
     queryKey: queryKeys.sales.sales.list({ search, status: status || undefined, page, size: 20 }),
-    queryFn: () => salesService.listSales({ status: status || undefined, page, size: 20 }),
+    queryFn: () => salesService.listSales({ search: search || undefined, status: status || undefined, page, size: 20 }),
   })
 
   const { data: customersData } = useQuery({
@@ -57,7 +51,8 @@ export function FacturasPage() {
     try {
       await salesService.downloadInvoicePdf(saleId)
       toast.success('PDF descargado')
-    } catch {
+    } catch (err) {
+      console.error('Error al descargar PDF', err)
       toast.error('Error al descargar PDF')
     } finally {
       setLoadingDownload(null)
@@ -69,7 +64,8 @@ export function FacturasPage() {
     try {
       await salesService.downloadInvoiceExcel(saleId)
       toast.success('Excel descargado')
-    } catch {
+    } catch (err) {
+      console.error('Error al descargar Excel', err)
       toast.error('Error al descargar Excel')
     } finally {
       setLoadingDownload(null)
@@ -81,7 +77,8 @@ export function FacturasPage() {
     try {
       await salesService.downloadInvoiceCsv(saleId)
       toast.success('CSV descargado')
-    } catch {
+    } catch (err) {
+      console.error('Error al descargar CSV', err)
       toast.error('Error al descargar CSV')
     } finally {
       setLoadingDownload(null)
@@ -109,7 +106,7 @@ export function FacturasPage() {
       header: 'Total',
       accessor: (s) => (
         <span className="font-medium">
-          {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(s.total)}
+          {formatCurrency(s.total)}
         </span>
       ),
     },
@@ -167,6 +164,7 @@ export function FacturasPage() {
             className="pl-10"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+            aria-label="Buscar facturas"
           />
         </div>
         <Select value={status} onValueChange={(v) => { setStatus(v ?? ''); setPage(1) }}>
@@ -175,6 +173,7 @@ export function FacturasPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">Todos</SelectItem>
+            <SelectItem value="PENDIENTE">Pendiente</SelectItem>
             <SelectItem value="CONFIRMADA">Confirmada</SelectItem>
             <SelectItem value="PAGADA">Pagada</SelectItem>
             <SelectItem value="ANULADA">Anulada</SelectItem>
@@ -213,6 +212,10 @@ export function FacturasPage() {
                   <Badge variant={statusBadge[viewInvoice.status] ?? 'outline'}>{viewInvoice.status}</Badge>
                 </div>
                 <div>
+                  <span className="text-muted-foreground">Cliente:</span>{' '}
+                  <span className="font-medium">{customerMap.get(viewInvoice.customerId) ?? '—'}</span>
+                </div>
+                <div>
                   <span className="text-muted-foreground">Fecha:</span>{' '}
                   {new Date(viewInvoice.createdAt).toLocaleString()}
                 </div>
@@ -227,7 +230,7 @@ export function FacturasPage() {
                     <span className="flex-1">{item.productName}</span>
                     <span className="mx-4 text-muted-foreground">x{item.quantity}</span>
                     <span className="font-medium">
-                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(item.subtotal)}
+                      {formatCurrency(item.subtotal)}
                     </span>
                   </div>
                 ))}
@@ -238,22 +241,22 @@ export function FacturasPage() {
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(viewInvoice.subtotal)}</span>
+                  <span>{formatCurrency(viewInvoice.subtotal)}</span>
                 </div>
                 {viewInvoice.discount > 0 && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Descuento</span>
-                    <span className="text-destructive">-{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(viewInvoice.discount)}</span>
+                    <span className="text-destructive">-{formatCurrency(viewInvoice.discount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">IVA</span>
-                  <span>{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(viewInvoice.tax)}</span>
+                  <span>{formatCurrency(viewInvoice.tax)}</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between font-bold text-base">
                   <span>Total</span>
-                  <span>{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(viewInvoice.total)}</span>
+                  <span>{formatCurrency(viewInvoice.total)}</span>
                 </div>
               </div>
 

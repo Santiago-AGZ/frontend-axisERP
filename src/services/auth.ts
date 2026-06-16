@@ -115,9 +115,12 @@ export const authService = {
     return response.data.data
   },
 
-  passwordReset: async (email: string) => {
-    const response = await api.post<ApiResponse<{ message: string }>>('/auth/password-reset', { email })
-    return response.data.data
+  requestPasswordReset: async (email: string) => {
+    await api.post<ApiResponse<void>>('/auth/password-reset', { email })
+  },
+
+  passwordReset: async (token: string, newPassword: string) => {
+    await api.post<ApiResponse<void>>('/auth/password-reset/confirm', { token, newPassword })
   },
 
   getAuditLogs: async (params?: { userId?: string; action?: string; entityType?: string; page?: number; size?: number }) => {

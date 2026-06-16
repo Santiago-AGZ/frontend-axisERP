@@ -1,11 +1,12 @@
 import { Suspense, lazy } from 'react'
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Link } from 'react-router-dom'
 import { AppLayout } from '@/components/AppLayout'
 import { LoginPage } from '@/views/LoginPage'
 import { ResetPasswordPage } from '@/views/ResetPasswordPage'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { RoleGuard } from '@/components/shared/role-guard'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 
 const DashboardPage = lazy(() => import('@/views/DashboardPage').then((m) => ({ default: m.DashboardPage })))
 const ClientesPage = lazy(() => import('@/views/ClientesPage').then((m) => ({ default: m.ClientesPage })))
@@ -103,5 +104,20 @@ export const router = createBrowserRouter([
         element: <LazyPage><RoleGuard allowedRoles={['ADMIN']}><AuditLogPage /></RoleGuard></LazyPage>,
       },
     ],
+  },
+  {
+    path: '*',
+    element: (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background px-4">
+        <div className="text-center">
+          <h1 className="text-6xl font-bold tracking-tight text-muted-foreground">404</h1>
+          <p className="mt-2 text-lg text-muted-foreground">Página no encontrada</p>
+          <p className="mt-1 text-sm text-muted-foreground">La página que buscas no existe o ha sido movida.</p>
+        </div>
+        <Link to="/">
+          <Button>Volver al inicio</Button>
+        </Link>
+      </div>
+    ),
   },
 ])

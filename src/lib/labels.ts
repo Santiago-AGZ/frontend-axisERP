@@ -67,3 +67,42 @@ export const nextPurchaseStatusLabel: Record<string, string> = {
   RECIBIDA: 'Marcar Recibida',
   PAGADA: 'Registrar Pago',
 }
+
+export const statusBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  CONFIRMADA: 'outline',
+  PAGADA: 'default',
+  ANULADA: 'destructive',
+  BORRADOR: 'secondary',
+  PENDIENTE: 'outline',
+  RECIBIDA: 'default',
+  CANCELADA: 'destructive',
+  ACTIVO: 'default',
+  ACTIVA: 'default',
+  INACTIVO: 'secondary',
+  INACTIVA: 'secondary',
+  ELIMINADO: 'destructive',
+}
+
+export const actionBadge: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  LOGIN: 'default',
+  LOGOUT: 'secondary',
+  CREATE: 'default',
+  UPDATE: 'outline',
+  DELETE: 'destructive',
+  DEACTIVATE: 'destructive',
+  REACTIVATE: 'default',
+  PASSWORD_RESET_REQUEST: 'secondary',
+  PASSWORD_RESET_COMPLETE: 'default',
+}
+
+export const roleBadgeColors: Record<string, string> = {
+  ADMIN: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  VENDEDOR: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  INVENTARIO: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+}
+
+export const roleTextColors: Record<string, string> = {
+  ADMIN: 'text-red-600',
+  VENDEDOR: 'text-blue-600',
+  INVENTARIO: 'text-amber-600',
+}
