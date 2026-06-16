@@ -24,6 +24,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { SeoHead } from '@/components/shared/seo-head'
+import { formatDate } from '@/lib/format'
 import { roleTextColors, statusBadge } from '@/lib/labels'
 import type { ApiResponse } from '@/types/api'
 import { noHTML } from '@/lib/validations'
@@ -200,7 +201,7 @@ export function UsuariosPage() {
       header: 'Creado',
       accessor: (u) => (
         <span className="text-sm text-muted-foreground">
-          {new Date(u.createdAt).toLocaleDateString()}
+          {formatDate(u.createdAt)}
         </span>
       ),
     },

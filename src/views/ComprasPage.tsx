@@ -3,12 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Plus, Eye, Trash2, FileText, XCircle, PackageCheck } from 'lucide-react'
+import { Plus, Eye, Trash2, FileText, XCircle, PackageCheck, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { purchaseService, type PurchaseResponse } from '@/services/purchase'
 import { catalogService } from '@/services/catalog'
 import { queryKeys } from '@/lib/query-keys'
 import { PageHeader } from '@/components/shared/page-header'
+import { SearchableSelect } from '@/components/shared/searchable-select'
 import { DataTable, type Column } from '@/components/shared/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,6 +27,7 @@ import { Separator } from '@/components/ui/separator'
 import { useAuthStore } from '@/stores/auth'
 import { statusBadge } from '@/lib/labels'
 import { noHTML } from '@/lib/validations'
+import { formatDate, formatDateTime, formatCurrency } from '@/lib/format'
 import { extractApiErrorMessage } from '@/lib/axios'
 
 const orderStatusFlow: Record<string, string> = {
@@ -54,6 +56,7 @@ export function ComprasPage() {
   const { user } = useAuthStore()
   const canManageStatus = user?.role === 'ADMIN'
   const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
   const [viewPurchase, setViewPurchase] = useState<PurchaseResponse | null>(null)
   const [receiveOpen, setReceiveOpen] = useState(false)
@@ -63,8 +66,8 @@ export function ComprasPage() {
   const [cancelId, setCancelId] = useState<string | null>(null)
 
   const { data: purchasesData, isLoading, isError, refetch } = useQuery({
-    queryKey: queryKeys.purchases.purchases.list({ page, size: 20 }),
-    queryFn: () => purchaseService.listPurchases({ page, size: 20 }),
+    queryKey: queryKeys.purchases.purchases.list({ page, size: 20, search }),
+    queryFn: () => purchaseService.listPurchases({ page, size: 20, search: search || undefined }),
   })
 
   const { data: suppliersData } = useQuery({
@@ -175,11 +178,11 @@ export function ComprasPage() {
     },
     {
       header: 'Fecha',
-      accessor: (p) => new Date(p.createdAt).toLocaleDateString(),
+      accessor: (p) => formatDate(p.createdAt),
     },
     {
       header: 'Total',
-      accessor: (p) => <span className="font-medium">${p.total.toLocaleString()}</span>,
+      accessor: (p) => <span className="font-medium">{formatCurrency(p.total)}</span>,
     },
     {
       header: 'Estado',
@@ -225,6 +228,16 @@ export function ComprasPage() {
         }
       />
 
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Buscar compras..."
+          className="pl-10"
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+        />
+      </div>
+
       <DataTable
         columns={columns}
         data={purchases}
@@ -247,23 +260,26 @@ export function ComprasPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
               <FormField control={form.control} name="supplierId" render={({ field }) => (
                 <FormItem><FormLabel>Proveedor</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger><SelectValue placeholder="Selecciona proveedor" /></SelectTrigger>
-                    <SelectContent>
-                      {suppliers.filter(s => s.status === 'ACTIVO').map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select><FormMessage />
+                  <SearchableSelect
+                    options={suppliers.filter(s => s.status === 'ACTIVO').map(s => ({ value: s.id, label: s.name }))}
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Selecciona proveedor"
+                    notFound="No se encontraron proveedores"
+                  />
+                  <FormMessage />
                 </FormItem>
               )} />
               <Separator />
               <div className="flex items-center justify-between">
                 <FormLabel>Items</FormLabel>
-                <Select onValueChange={(v) => { if (v) addProduct(v as string) }}>
-                  <SelectTrigger className="w-64"><SelectValue placeholder="+ Agregar producto" /></SelectTrigger>
-                  <SelectContent>
-                    {products.filter(p => p.status === 'ACTIVO').map((p) => <SelectItem key={p.id} value={p.id}>{p.name} - ${p.purchasePrice}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  options={products.filter(p => p.status === 'ACTIVO').map(p => ({ value: p.id, label: `${p.name} - $${p.purchasePrice}` }))}
+                  value=""
+                  onValueChange={(v) => { if (v) addProduct(v) }}
+                  placeholder="+ Agregar producto"
+                  notFound="No se encontraron productos"
+                />
               </div>
               <div className="max-h-48 overflow-y-auto rounded-md border">
                 <table className="w-full text-sm">
@@ -278,14 +294,14 @@ export function ComprasPage() {
                         <td className="p-2">{products.find(p => p.id === items[index]?.productId)?.name ?? '—'}</td>
                         <td className="p-2"><Input type="number" min={1} className="h-8" value={items[index]?.quantity ?? 1} onChange={(e) => form.setValue(`items.${index}.quantity`, parseInt(e.target.value) || 1)} /></td>
                         <td className="p-2"><Input type="number" step="0.01" className="h-8" value={items[index]?.unitPrice ?? 0} onChange={(e) => form.setValue(`items.${index}.unitPrice`, parseFloat(e.target.value) || 0)} /></td>
-                        <td className="p-2 text-right">${((items[index]?.quantity ?? 0) * (items[index]?.unitPrice ?? 0)).toLocaleString()}</td>
+                        <td className="p-2 text-right">{formatCurrency((items[index]?.quantity ?? 0) * (items[index]?.unitPrice ?? 0))}</td>
                         <td className="p-2"><Button type="button" variant="ghost" size="icon" className="size-6" aria-label="Eliminar" onClick={() => remove(index)}><Trash2 className="size-3" /></Button></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div className="flex justify-end font-bold">Total: ${total.toLocaleString()}</div>
+              <div className="flex justify-end font-bold">Total: {formatCurrency(total)}</div>
               <DialogFooter><Button type="submit" disabled={createMutation.isPending || items.length === 0}>Crear orden de compra</Button></DialogFooter>
             </form>
           </Form>
@@ -300,7 +316,7 @@ export function ComprasPage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><span className="text-muted-foreground">Proveedor:</span> {supplierMap.get(viewPurchase.supplierId) ?? <span className="italic text-muted-foreground">Desconocido</span>}</div>
                 <div><span className="text-muted-foreground">Estado:</span> {viewPurchase.status}</div>
-                <div><span className="text-muted-foreground">Fecha:</span> {new Date(viewPurchase.createdAt).toLocaleString()}</div>
+                <div><span className="text-muted-foreground">Fecha:</span> {formatDateTime(viewPurchase.createdAt)}</div>
               </div>
               <Separator />
               <table className="w-full text-sm">
@@ -316,13 +332,13 @@ export function ComprasPage() {
                       <td className="py-2 text-right">{item.quantity}</td>
                       <td className="py-2 text-right">{item.receivedQuantity}</td>
                       <td className="py-2 text-right">{item.pendingQuantity}</td>
-                      <td className="py-2 text-right">${item.unitPrice.toLocaleString()}</td>
-                      <td className="py-2 text-right font-medium">${item.subtotal.toLocaleString()}</td>
+                      <td className="py-2 text-right">{formatCurrency(item.unitPrice)}</td>
+                      <td className="py-2 text-right font-medium">{formatCurrency(item.subtotal)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <div className="flex justify-end font-bold text-base">Total: ${viewPurchase.total.toLocaleString()}</div>
+              <div className="flex justify-end font-bold text-base">Total: {formatCurrency(viewPurchase.total)}</div>
               {viewPurchase.status === 'PENDIENTE' && (
                 <DialogFooter>
                   <Button onClick={() => { setReceivePurchase(viewPurchase); setReceiveOpen(true) }}>

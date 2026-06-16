@@ -11,7 +11,7 @@ import {
 import { ErrorState } from '@/components/shared/error-state'
 import { SeoHead } from '@/components/shared/seo-head'
 import { queryKeys } from '@/lib/query-keys'
-import { formatCurrency } from '@/lib/format'
+import { formatCurrency, formatDate } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth'
 import { reportService, type DashboardData } from '@/services/report'
 import { NavLink } from 'react-router-dom'
@@ -27,7 +27,7 @@ function timeAgo(dateStr: string): string {
   if (diffHour < 24) return `Hace ${diffHour} ${diffHour === 1 ? 'hora' : 'horas'}`
   const diffDay = Math.floor(diffHour / 24)
   if (diffDay < 7) return `Hace ${diffDay} ${diffDay === 1 ? 'día' : 'días'}`
-  return new Date(dateStr).toLocaleDateString()
+  return formatDate(dateStr)
 }
 
 function KpiSkeleton() {

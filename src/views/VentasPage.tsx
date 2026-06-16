@@ -4,13 +4,14 @@ import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { extractApiErrorMessage } from '@/lib/axios'
-import { Plus, Eye, Ban, Trash2, ShoppingCart, CheckCircle2, CreditCard } from 'lucide-react'
+import { Plus, Eye, Ban, Trash2, ShoppingCart, CheckCircle2, CreditCard, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth'
 import { salesService, type SaleResponse } from '@/services/sales'
 import { catalogService } from '@/services/catalog'
 import { queryKeys } from '@/lib/query-keys'
 import { PageHeader } from '@/components/shared/page-header'
+import { SearchableSelect } from '@/components/shared/searchable-select'
 import { DataTable, type Column } from '@/components/shared/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,6 +28,7 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { statusBadge } from '@/lib/labels'
+import { formatDate, formatDateTime, formatCurrency } from '@/lib/format'
 import { noHTML } from '@/lib/validations'
 
 const saleItemSchema = z.object({
@@ -51,14 +53,15 @@ export function VentasPage() {
   const isAdmin = userRole === 'ADMIN'
   const maxDiscount = isAdmin ? 100 : 30
   const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
   const [viewSale, setViewSale] = useState<SaleResponse | null>(null)
   const [voidOpen, setVoidOpen] = useState(false)
   const [voidingId, setVoidingId] = useState<string | null>(null)
 
   const { data: salesData, isLoading, isError, refetch } = useQuery({
-    queryKey: queryKeys.sales.sales.list({ page, size: 20 }),
-    queryFn: () => salesService.listSales({ page, size: 20 }),
+    queryKey: queryKeys.sales.sales.list({ page, size: 20, search }),
+    queryFn: () => salesService.listSales({ page, size: 20, search: search || undefined }),
   })
 
   const { data: customersData } = useQuery({
@@ -181,9 +184,9 @@ export function VentasPage() {
 
   const columns: Column<SaleResponse>[] = [
     { header: 'Factura', accessor: (s) => <span className="font-mono text-sm font-medium">{s.saleNumber}</span> },
-    { header: 'Fecha', accessor: (s) => new Date(s.createdAt).toLocaleDateString() },
+    { header: 'Fecha', accessor: (s) => formatDate(s.createdAt) },
     { header: 'Items', accessor: (s) => s.items.length.toString() },
-    { header: 'Total', accessor: (s) => <span className="font-semibold">${s.total.toLocaleString()}</span> },
+    { header: 'Total', accessor: (s) => <span className="font-semibold">{formatCurrency(s.total)}</span> },
     { header: 'Estado', accessor: (s) => <Badge variant={statusBadge[s.status] ?? 'outline'}>{s.status}</Badge> },
     {
       header: '',
@@ -225,6 +228,16 @@ export function VentasPage() {
         }
       />
 
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Buscar ventas..."
+          className="pl-10"
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+        />
+      </div>
+
       <DataTable
         columns={columns}
         data={sales}
@@ -248,24 +261,27 @@ export function VentasPage() {
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="customerId" render={({ field }) => (
                   <FormItem><FormLabel>Cliente</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger><SelectValue placeholder="Selecciona cliente" /></SelectTrigger>
-                      <SelectContent>
-                        {customers.filter(c => c.status === 'ACTIVO').map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select><FormMessage />
+                    <SearchableSelect
+                      options={customers.filter(c => c.status === 'ACTIVO').map(c => ({ value: c.id, label: c.name }))}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      placeholder="Selecciona cliente"
+                      notFound="No se encontraron clientes"
+                    />
+                    <FormMessage />
                   </FormItem>
                 )} />
               </div>
               <Separator />
               <div className="flex items-center justify-between">
                 <FormLabel>Items</FormLabel>
-                <Select onValueChange={(v) => { if (v) addProduct(v as string) }}>
-                  <SelectTrigger className="w-64"><SelectValue placeholder="+ Agregar producto" /></SelectTrigger>
-                  <SelectContent>
-                    {products.filter(p => p.status === 'ACTIVO').map((p) => <SelectItem key={p.id} value={p.id}>{p.name} - ${p.salePrice}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <SearchableSelect
+                  options={products.filter(p => p.status === 'ACTIVO').map(p => ({ value: p.id, label: `${p.name} - $${p.salePrice}` }))}
+                  value=""
+                  onValueChange={(v) => { if (v) addProduct(v) }}
+                  placeholder="+ Agregar producto"
+                  notFound="No se encontraron productos"
+                />
               </div>
               <div className="max-h-48 overflow-y-auto rounded-md border">
                 <table className="w-full text-sm">
@@ -280,7 +296,7 @@ export function VentasPage() {
                         <td className="p-2">{products.find(p => p.id === items[index]?.productId)?.name ?? '—'}</td>
                         <td className="p-2"><Input type="number" min={1} className="h-8" value={items[index]?.quantity ?? 1} onChange={(e) => form.setValue(`items.${index}.quantity`, parseInt(e.target.value) || 1)} /></td>
                         <td className="p-2"><Input type="number" step="0.01" className="h-8" value={items[index]?.unitPrice ?? 0} onChange={(e) => form.setValue(`items.${index}.unitPrice`, parseFloat(e.target.value) || 0)} /></td>
-                        <td className="p-2 text-right">${((items[index]?.quantity ?? 0) * (items[index]?.unitPrice ?? 0)).toLocaleString()}</td>
+                        <td className="p-2 text-right">{formatCurrency((items[index]?.quantity ?? 0) * (items[index]?.unitPrice ?? 0))}</td>
                         <td className="p-2"><Button type="button" variant="ghost" size="icon" className="size-6" aria-label="Eliminar" onClick={() => remove(index)}><Trash2 className="size-3" /></Button></td>
                       </tr>
                     ))}
@@ -288,14 +304,14 @@ export function VentasPage() {
                 </table>
               </div>
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span>Subtotal:</span><span>${subtotal.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>Subtotal:</span><span>{formatCurrency(subtotal)}</span></div>
                 <div className="flex items-center justify-between gap-4">
                   <span>Descuento (%):</span>
                   <Input type="number" min={0} max={isAdmin ? 100 : 30} className="h-7 w-20 text-right" value={form.watch('discount') ?? 0} onChange={(e) => form.setValue('discount', parseFloat(e.target.value) || 0)} />
                 </div>
-                <div className="flex justify-between"><span>IVA (19%):</span><span>${iva.toLocaleString()}</span></div>
+                <div className="flex justify-between"><span>IVA (19%):</span><span>{formatCurrency(iva)}</span></div>
                 <Separator />
-                <div className="flex justify-between font-bold text-base"><span>Total:</span><span>${total.toLocaleString()}</span></div>
+                <div className="flex justify-between font-bold text-base"><span>Total:</span><span>{formatCurrency(total)}</span></div>
               </div>
               <DialogFooter>
                 <Button type="submit" disabled={createMutation.isPending || items.length === 0}>Crear Venta</Button>
@@ -314,7 +330,7 @@ export function VentasPage() {
                 <div><span className="text-muted-foreground">Factura:</span> {viewSale.saleNumber}</div>
                 <div><span className="text-muted-foreground">Estado:</span> {viewSale.status}</div>
                 <div><span className="text-muted-foreground">Cliente:</span> {customerMap.get(viewSale.customerId) ?? '—'}</div>
-                <div><span className="text-muted-foreground">Fecha:</span> {new Date(viewSale.createdAt).toLocaleString()}</div>
+                <div><span className="text-muted-foreground">Fecha:</span> {formatDateTime(viewSale.createdAt)}</div>
               </div>
               <Separator />
               <table className="w-full text-sm">
@@ -328,13 +344,13 @@ export function VentasPage() {
                     <tr key={item.id} className="border-b last:border-0">
                       <td className="py-2">{item.productName}</td>
                       <td className="py-2 text-right">{item.quantity}</td>
-                      <td className="py-2 text-right">${item.unitPrice.toLocaleString()}</td>
-                      <td className="py-2 text-right font-medium">${item.subtotal.toLocaleString()}</td>
+                      <td className="py-2 text-right">{formatCurrency(item.unitPrice)}</td>
+                      <td className="py-2 text-right font-medium">{formatCurrency(item.subtotal)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <div className="flex justify-end font-bold text-base">Total: ${viewSale.total.toLocaleString()}</div>
+              <div className="flex justify-end font-bold text-base">Total: {formatCurrency(viewSale.total)}</div>
               <div className="flex justify-end gap-2">
                 {(viewSale.status === 'BORRADOR' || viewSale.status === 'PENDIENTE') && (
                   <Button size="sm" onClick={() => confirmMutation.mutate(viewSale.id)} disabled={confirmMutation.isPending}>
