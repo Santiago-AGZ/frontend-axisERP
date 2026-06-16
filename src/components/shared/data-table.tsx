@@ -1,10 +1,13 @@
 import { useState, useMemo } from 'react'
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import { Pagination } from '@/components/ui/pagination'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select'
 import { EmptyState } from './empty-state'
 import { ErrorState } from './error-state'
 import type { PaginationMeta } from '@/types/api'
@@ -41,7 +44,7 @@ interface DataTableProps<T> {
 
 function TableSkeleton({ columns, rows = 5 }: { columns: Column<unknown>[]; rows?: number }) {
   return (
-    <div className="rounded-xl border overflow-hidden">
+    <div className="border border-border overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow>
@@ -125,7 +128,7 @@ export function DataTable<T>({
 
   if (sortedData.length === 0) {
     return (
-      <div className="rounded-xl border">
+      <div className="border border-border rounded-lg">
         <EmptyState
           icon={emptyIcon as LucideIcon}
           title={emptyTitle}
@@ -138,7 +141,7 @@ export function DataTable<T>({
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-xl border">
+      <div className="overflow-hidden border border-border rounded-lg">
         <Table aria-label={ariaLabel}>
           <TableHeader>
             <TableRow>
@@ -189,16 +192,52 @@ export function DataTable<T>({
       </div>
 
       {pagination && (onPageChange || onPageSizeChange) && (
-        <Pagination
-          page={pagination.page}
-          pageSize={pagination.pageSize}
-          totalRecords={pagination.totalRecords}
-          totalPages={pagination.totalPages}
-          hasNext={pagination.hasNext}
-          hasPrevious={pagination.hasPrevious}
-          onPageChange={onPageChange}
-          onPageSizeChange={onPageSizeChange}
-        />
+        <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="text-[13px]">Página {pagination.page} de {pagination.totalPages}</span>
+            {onPageSizeChange && (
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground/40 mx-1">|</span>
+                <Select
+                  value={String(pagination.pageSize)}
+                  onValueChange={(v) => onPageSizeChange(Number(v))}
+                >
+                  <SelectTrigger className="h-8 w-14 text-[13px]" aria-label="Elementos por página">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[10, 20, 50, 100].map((size) => (
+                      <SelectItem key={size} value={String(size)}>
+                        {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon-sm"
+              disabled={!pagination.hasPrevious}
+              onClick={() => onPageChange?.(pagination.page - 1)}
+              aria-label="Página anterior"
+            >
+              <ChevronLeft className="size-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              disabled={!pagination.hasNext}
+              onClick={() => onPageChange?.(pagination.page + 1)}
+              aria-label="Página siguiente"
+            >
+              <ChevronRight className="size-3.5" />
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   )

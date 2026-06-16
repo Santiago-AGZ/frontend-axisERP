@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, useFieldArray } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { AxiosError } from 'axios'
+import { extractApiErrorMessage } from '@/lib/axios'
 import { Plus, Eye, Ban, Trash2, ShoppingCart, CheckCircle2, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth'
@@ -15,7 +15,7 @@ import { DataTable, type Column } from '@/components/shared/data-table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import type { ApiResponse } from '@/types/api'
+
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
@@ -109,8 +109,7 @@ export function VentasPage() {
       form.reset()
     },
     onError: (err) => {
-      const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'No se pudo crear la venta'
-      toast.error(msg)
+      toast.error(extractApiErrorMessage(err) ?? 'No se pudo crear la venta')
     },
   })
 
@@ -125,8 +124,12 @@ export function VentasPage() {
       toast.success('Venta confirmada')
     },
     onError: (err) => {
-      const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'Error al confirmar venta'
-      toast.error(msg)
+      const backendMsg = extractApiErrorMessage(err)
+      if (backendMsg?.includes('Inventario no encontrado')) {
+        toast.error('Inventario no inicializado. Inicialice el inventario del producto antes de confirmar la venta.')
+      } else {
+        toast.error(backendMsg ?? 'Error al confirmar venta')
+      }
     },
   })
 
@@ -141,8 +144,7 @@ export function VentasPage() {
       toast.success('Pago registrado')
     },
     onError: (err) => {
-      const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'Error al registrar pago'
-      toast.error(msg)
+      toast.error(extractApiErrorMessage(err) ?? 'Error al registrar pago')
     },
   })
 
@@ -159,8 +161,7 @@ export function VentasPage() {
       setVoidingId(null)
     },
     onError: (err) => {
-      const msg = (err as AxiosError<ApiResponse<unknown>>)?.response?.data?.message || 'Error al anular venta'
-      toast.error(msg)
+      toast.error(extractApiErrorMessage(err) ?? 'Error al anular venta')
     },
   })
 

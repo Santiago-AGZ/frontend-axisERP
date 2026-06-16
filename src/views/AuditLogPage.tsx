@@ -51,7 +51,12 @@ export default function AuditLogPage() {
   const columns: Column<AuditLogRow>[] = [
     { header: 'Fecha', accessor: (l) => new Date(l.timestamp).toLocaleString() },
     { header: 'Servicio', accessor: (l) => <span className="text-xs text-muted-foreground">{l.source}</span>, className: 'w-20' },
-    { header: 'Usuario', accessor: (l) => l.userName || (l.userId ? `Usuario ${l.userId.slice(0, 8)}...` : <span className="text-muted-foreground">—</span>) },
+    { header: 'Usuario', accessor: (l) => {
+      const name = l.userName?.trim()
+      if (name) return <span className="font-medium">{name}</span>
+      if (l.userId) return <span className="font-mono text-xs text-muted-foreground">{l.userId.slice(0, 8)}</span>
+      return <span className="text-muted-foreground/50">—</span>
+    } },
     {
       header: 'Acción',
       accessor: (l) => <Badge variant={actionBadge[l.action] ?? 'outline'}>{actionLabel[l.action] ?? l.action}</Badge>,

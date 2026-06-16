@@ -23,7 +23,7 @@ const iconBg: Record<string, string> = {
 
 export function MetricCard({ title, value, icon: Icon, trend, variant = 'default' }: MetricCardProps) {
   return (
-    <div className="relative overflow-hidden rounded-xl border bg-card p-5 transition-all duration-200 hover:shadow-glass hover:-translate-y-0.5">
+    <div className="relative overflow-hidden rounded-xl border bg-card p-5 shadow-xs">
       <div className="flex items-start justify-between">
         <div className="space-y-2">
           <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">{title}</p>

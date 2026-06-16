@@ -13,9 +13,6 @@ import {
   Form, FormField, FormItem, FormLabel, FormControl, FormMessage,
 } from '@/components/ui/form'
 import { SeoHead } from '@/components/shared/seo-head'
-import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle,
-} from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { ForgotPasswordDialog } from '@/components/features/forgot-password-dialog'
@@ -57,123 +54,110 @@ export function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-gradient-to-br from-background via-background to-primary/[0.03] px-4">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute -top-40 -right-40 size-80 rounded-full bg-primary/[0.03] blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 size-80 rounded-full bg-info/[0.03] blur-3xl" />
-      </div>
+    <div className="flex min-h-dvh items-center justify-center bg-background p-4">
       <SeoHead title="Iniciar Sesión" description="Accede al sistema de gestión empresarial AxisERP con tus credenciales." />
-      <div className="w-full max-w-md animate-fade-in">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+
+      <div className="w-full max-w-sm animate-fade-in space-y-8">
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
             <span className="text-base font-bold">A</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">AxisERP</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Sistema de gestión empresarial
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">AxisERP</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Plataforma de gestión empresarial</p>
         </div>
 
-        <Card>
-          <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-lg">Iniciar sesión</CardTitle>
-            <CardDescription>
-              Ingresa tus credenciales para acceder al sistema
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <Alert variant="destructive" className="mb-4" role="alert">
-                <AlertCircle className="size-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+        <div className="rounded-xl border bg-card p-6">
+          {error && (
+            <Alert className="mb-4 border-primary/20 bg-primary/[0.06]" role="alert">
+              <AlertCircle className="size-4 shrink-0 text-primary" />
+              <AlertDescription className="text-primary/80">{error}</AlertDescription>
+            </Alert>
+          )}
 
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Correo electrónico</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            type="email"
-                            placeholder="admin@axiserp.com"
-                            className="pl-10"
-                            autoComplete="email"
-                            aria-label="Correo electrónico"
-                            {...field}
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Correo electrónico</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type="email"
+                          placeholder="admin@axiserp.com"
+                          className="pl-10 bg-secondary"
+                          autoComplete="email"
+                          aria-label="Correo electrónico"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contraseña</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                          <Input
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder="••••••••"
-                            className="pl-10 pr-10"
-                            autoComplete="current-password"
-                            aria-label="Contraseña"
-                            {...field}
-                          />
-                          <button
-                            type="button"
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            onClick={() => setShowPassword(!showPassword)}
-                            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                          >
-                            {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                          </button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contraseña</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          className="pl-10 pr-10 bg-secondary"
+                          autoComplete="current-password"
+                          aria-label="Contraseña"
+                          {...field}
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          onClick={() => setShowPassword(!showPassword)}
+                          aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                        >
+                          {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                        </button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <Button type="submit" className="w-full gap-2" disabled={isLoading}>
-                  {isLoading ? (
-                    'Iniciando sesión...'
-                  ) : (
-                    <>
-                      <LogIn className="size-4" />
-                      Iniciar sesión
-                    </>
-                  )}
-                </Button>
-              </form>
-            </Form>
-
-            <Separator className="my-4" />
-
-            <div className="text-center">
-              <Button
-                variant="link"
-                size="sm"
-                className="text-xs text-muted-foreground"
-                onClick={() => setForgotOpen(true)}
-              >
-                ¿Olvidaste tu contraseña?
+              <Button type="submit" className="w-full gap-2" disabled={isLoading}>
+                {isLoading ? (
+                  'Iniciando sesión...'
+                ) : (
+                  <>
+                    <LogIn className="size-4" />
+                    Iniciar sesión
+                  </>
+                )}
               </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </form>
+          </Form>
+
+          <Separator className="my-4" />
+
+          <div className="text-center">
+            <Button
+              variant="link"
+              size="sm"
+              className="text-xs text-muted-foreground"
+              onClick={() => setForgotOpen(true)}
+            >
+              ¿Olvidaste tu contraseña?
+            </Button>
+          </div>
+        </div>
       </div>
 
       <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} />
