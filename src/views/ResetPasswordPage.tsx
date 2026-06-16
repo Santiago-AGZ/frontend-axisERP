@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -7,7 +7,7 @@ import { Lock, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, XCircle } from '
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Form, FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription,
+  Form, FormField, FormItem, FormLabel, FormControl, FormMessage,
 } from '@/components/ui/form'
 import {
   Card, CardContent, CardDescription, CardHeader, CardTitle,
