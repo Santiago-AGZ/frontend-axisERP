@@ -30,11 +30,26 @@ const resetSchema = z.object({
 
 type ResetValues = z.infer<typeof resetSchema>
 
+function extractRecoveryToken(): string {
+  const hash = window.location.hash.replace('#', '')
+  if (hash) {
+    const hashParams = new URLSearchParams(hash)
+    const at = hashParams.get('access_token')
+    if (at) return at
+  }
+  const params = new URLSearchParams(window.location.search)
+  const th = params.get('token_hash')
+  if (th) return th
+  const code = params.get('code')
+  if (code) return code
+  return params.get('token') ?? ''
+}
+
 export function ResetPasswordPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
-  const token = searchParams.get('token') || ''
+  const [token] = useState(extractRecoveryToken)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
